@@ -1,6 +1,6 @@
 "use client";
 
-import Page from '@/pages/HomePage';
+import Page from '@/pages/auth/RegisterPage';
 
 
 export default function PageWrapper() {
