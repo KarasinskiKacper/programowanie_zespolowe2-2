@@ -1,0 +1,146 @@
+import { Button } from "@/components/inputs/Button";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+export default function AuctionPage() {
+	const dispatch = useAppDispatch();
+
+	const [selectedImageIndex, setSelectedImageIndex] = React.useState(0);
+
+	const product: any = {
+		title: "Ekspres ciśnieniowy DeLonghi Magnifica Start ECAM220.80.SB 1450W",
+		startPrice: 1000,
+		price: 1999,
+		images: [
+			"https://goldenmark.com/blog/wp-content/uploads/2021/05/gwiazdzista-noc.jpg",
+			"https://t3.ftcdn.net/jpg/04/75/10/10/240_F_475101004_5EyfhlZWZCUNhBl3qBWq6eYC3fXGGQCx.jpg",
+			"https://www.dobrasztuka.pl/wp-content/uploads/2024/10/Portret-recznie-malowany-kubizm-Uspione-piekno-2316A-800x800.jpg",
+			"https://cdn2.nowiny.pl/im/v1/news-900-widen-wm/2023/01/12/216153_1673518945_76504600.webp",
+		],
+		time: "2 dni 4 godz",
+		owner: {
+			name: "Daniel",
+			surname: "Nowacki",
+			avatarUrl: "",
+		},
+		winner: {
+			name: "Robert",
+			surname: "Ryś",
+			avatarUrl: "",
+			time: "14.12.2025 13:20",
+		},
+		startDate: "14.12.2025 13:20",
+		endDate: "14.12.2025 13:20",
+		description: `
+# Laptop Lenovo – niezawodna wydajność na co dzień
+
+Laptop **Lenovo** to połączenie solidnego wykonania, nowoczesnego designu i wydajnych podzespołów, które sprawdzą się zarówno w pracy, nauce, jak i codziennym użytkowaniu. To sprzęt zaprojektowany z myślą o stabilności, komforcie i długiej żywotności.
+
+## Najważniejsze cechy
+- **Wydajny procesor** – płynna praca wielozadaniowa, szybkie uruchamianie aplikacji
+- **Czytelny ekran** – komfort dla oczu podczas pracy i rozrywki
+- **Szybki dysk SSD** – błyskawiczny start systemu i aplikacji
+- **Ergonomiczna klawiatura Lenovo** – wygodne pisanie nawet przez wiele godzin
+- **Solidna konstrukcja** – trwałość i niezawodność w codziennym użytkowaniu
+
+## Idealny do:
+- pracy biurowej i zdalnej
+- nauki i zajęć online
+- przeglądania internetu i multimediów
+- podstawowej obróbki dokumentów i grafiki
+
+## Dlaczego Lenovo?
+Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosunek jakości do ceny. To wybór dla osób, które oczekują stabilności, komfortu pracy i sprawdzonej technologii.
+
+**Laptop Lenovo** to praktyczne i uniwersalne rozwiązanie, które dopasuje się do Twoich codziennych potrzeb.
+`.trim(),
+	};
+
+	return (
+		<div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">
+			<div className="w-full max-w-[1400px] flex flex-col justify-start items-start gap-16 overflow-hidden">
+				<div className="self-stretch inline-flex justify-start items-center gap-8">
+					<div className="flex-1 p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
+						<div className="self-stretch justify-start text-black text-3xl font-bold font-['Inter']">{product.title}</div>
+						<div className="self-stretch flex flex-col justify-start items-start gap-8">
+							<img
+								src={product.images[selectedImageIndex]}
+								className={`w-full h-full object-contain max-h-96`}
+							/>
+							<div className="self-stretch inline-flex justify-start items-center gap-4 overflow-hidden">
+								{product.images.map((image: string, index: number) => (
+									<div key={index} className="w-32 h-32 bg-neutral-400">
+										<img
+											src={image}
+											className={`w-full h-full object-cover ${index === selectedImageIndex ? "border-4 border-brand-primary" : ""}`}
+											onClick={() => setSelectedImageIndex(index)}
+										/>
+									</div>
+								))}
+							</div>
+						</div>
+					</div>
+					<div className="w-[512px] self-stretch p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-8 overflow-hidden">
+						<div className="self-stretch flex flex-col justify-start items-start">
+							<div className="self-stretch text-center justify-start text-zinc-400 text-xl font-bold font-['Inter']">Czas do końca aukcji</div>
+							<div className="self-stretch text-center justify-start text-black text-3xl font-bold font-['Inter']">{product.time}</div>
+						</div>
+						<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
+						<div className="self-stretch flex flex-col justify-start items-start gap-8">
+							<div className="flex flex-col justify-start items-start gap-2">
+								<div className="inline-flex justify-center items-end gap-1">
+									<div className="justify-start text-brand-primary text-8xl font-bold font-['Inter']">{product.price}</div>
+									<div className="justify-start text-brand-primary text-6xl font-bold font-['Inter']">zł</div>
+								</div>
+								<div className="inline-flex justify-start items-center gap-2">
+									<div className="w-16 h-16 relative bg-zinc-400 rounded-[64px]" />
+									<div className="inline-flex flex-col justify-center items-start gap-1">
+										<div className="justify-start text-black text-xl font-bold font-['Inter']">
+											{product.winner.name} {product.winner.surname}
+										</div>
+										<div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">{product.winner.time}</div>
+									</div>
+								</div>
+							</div>
+							<div className="self-stretch inline-flex justify-start items-start gap-4">
+                                <input type="number" className="flex-1 h-12 border-2 border-orange-600 px-4 text-2xl" />
+								<Button label="Przebij" onClick={() => {}} size="small" />
+							</div>
+						</div>
+						<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
+						<div className="flex flex-col justify-start items-start gap-4">
+							<div className="inline-flex justify-start items-center gap-2">
+								<div className="w-8 h-8 relative bg-zinc-400 rounded-[64px]" />
+								<div className="justify-start text-black text-xl font-bold font-['Inter']">
+									{product.owner.name} {product.owner.surname}
+								</div>
+							</div>
+							<div className="flex flex-col justify-start items-start gap-1">
+								<div className="inline-flex justify-start items-start gap-2">
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">Cena początkowa:</div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.startPrice}zł</div>
+								</div>
+								<div className="inline-flex justify-start items-start gap-2">
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">Start aukcji:</div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.startDate}</div>
+								</div>
+								<div className="inline-flex justify-start items-start gap-2">
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">Koniec aukcji: </div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.endDate}</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div className="self-stretch p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 flex flex-col justify-start items-start gap-4 overflow-hidden">
+					<div className="justify-start text-orange-600 text-2xl font-bold font-['Inter']">Opis</div>
+					<div className="self-stretch justify-start flex-col">
+						<ReactMarkdown remarkPlugins={[remarkGfm]}>{product.description}</ReactMarkdown>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
