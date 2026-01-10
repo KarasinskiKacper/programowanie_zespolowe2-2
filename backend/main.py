@@ -20,11 +20,16 @@ def create_app():
 
     db.init_app(app)
 
+    from routes.Auctions import bp as auctions_bp
+    app.register_blueprint(auctions_bp)
+    
+    from routes.Users import bp as users_bp
+    app.register_blueprint(users_bp)
     
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    with app.app_context():
-        db.create_all()
+    # with app.app_context():
+    #     db.create_all()
     app.run(debug=True)

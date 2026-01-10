@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from narwhals import Datetime
+from datetime import datetime
 from db_objects import Users, db
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
@@ -80,7 +80,7 @@ def register():
         email=email,
         password=password,
         phone_number=phone_number,
-        create_account_date=Datetime.utcnow()
+        create_account_date=datetime.utcnow()
     )
     db.session.add(new_user)
     db.session.commit()

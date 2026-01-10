@@ -5,14 +5,25 @@ from sqlalchemy import func
 db = SQLAlchemy()
 
 class Auction(db.Model):
-    __tablename__ = 'auctions'
+    __tablename__ = 'auction'
     id_auction = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    id_item = db.Column(db.Integer, ForeignKey('items.id_item'), nullable=False)
-    start_price = db.Column(db.decimal(10, 2), nullable=False)
-    start_date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=False)
+    id_item = db.Column(db.Integer, ForeignKey('auction_item.id_item'), nullable=False)
+    start_price = db.Column(db.Float(10, 2), nullable=False)
+    start_auction = db.Column(db.DateTime, nullable=False)
+    end_auction = db.Column(db.DateTime, nullable=False)
     overtime_auction = db.Column(db.Integer, nullable=False, default=0)
     id_winner = db.Column(db.Integer, ForeignKey('users.id_user'), nullable=True)
+    
+    def to_dict(self):
+        return {
+            'id_auction': self.id_auction,
+            'id_item': self.id_item,
+            'start_price': self.start_price,
+            'start_auction': self.start_auction,
+            'end_auction': self.end_auction,
+            'overtime_auction': self.overtime_auction,
+            'id_winner': self.id_winner
+        }
     
     
 class AuctionItem(db.Model):
@@ -36,28 +47,28 @@ class AuctionPriceHistory(db.Model):
     __tablename__ = 'auction_price_history'
     id_price_history = db.Column(db.Integer, primary_key=True, autoincrement=True)
     id_auction = db.Column(db.Integer, ForeignKey('auctions.id_auction'), nullable=False)
-    id_user = db.Column(db.Integer, ForeignKey('users.id_user'), nullable=False)
-    new_price = db.Column(db.decimal(10, 2), nullable=False)
+    id_users = db.Column(db.Integer, ForeignKey('users.id_users'), nullable=False)
+    new_price = db.Column(db.Float(10, 2), nullable=False)
     date_price_reprint = db.Column(db.DateTime, nullable=False, default=func.now())
     
     def to_dict(self):
         return {
             'id_price_history': self.id_price_history,
             'id_auction': self.id_auction,
-            'id_user': self.id_user,
+            'id_users': self.id_users,
             'new_price': self.new_price,
             'date_price_reprint': self.date_price_reprint
         }
     
 class Categories(db.Model):
     __tablename__ = 'categories'
-    id_category = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    category_name = db.Column(db.String(255), nullable=False)
+    id_categories = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    categories_name = db.Column(db.String(255), nullable=False)
     
     def to_dict(self):
         return {
-            'id_category': self.id_category,
-            'category_name': self.category_name
+            'id_categories': self.id_categories,
+            'categories_name': self.categories_name
         }
     
 class CategoriesItem(db.Model):
