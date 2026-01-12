@@ -80,7 +80,7 @@ def register():
         email=email,
         password=password,
         phone_number=phone_number,
-        create_account_date=datetime.utcnow()
+        create_account_date=datetime.now()
     )
     db.session.add(new_user)
     db.session.commit()
