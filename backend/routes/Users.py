@@ -86,3 +86,13 @@ def register():
     db.session.commit()
 
     return jsonify({"message": "User registered successfully"}), 201
+
+@bp.route('/is_email_taken', methods=['GET'])
+def check_email():
+    email = request.args.get('email')
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user_exists = Users.query.filter_by(email=email).first() is not None
+    return jsonify({"exists": bool(user_exists) }), 200

@@ -26,7 +26,7 @@ VALUES
 (3, 'Zegarek kolekcjonerski', 'Mechaniczny, rocznik 1980, po przeglądzie.', 3, 800.00, '2026-01-02 09:00:00', '2026-01-08 21:00:00', 0, 'not_issued', NULL);
 
 -- 4) CATEGORIE_AUCTION (many-to-many)
-INSERT INTO categorie_auction (id_category, id_auction) VALUES
+INSERT INTO categories_auction (id_category, id_auction) VALUES
 (1, 1), -- Elektronika -> RTX
 (2, 1), -- Komputery -> RTX
 (1, 2), -- Elektronika -> iPhone

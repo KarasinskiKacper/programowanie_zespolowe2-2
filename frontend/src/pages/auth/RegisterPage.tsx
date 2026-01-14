@@ -2,6 +2,8 @@ import { Button } from "@/components/inputs/Button";
 import { TextInput } from "@/components/inputs/TextInput";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { useRouter } from "next/navigation";
+import { registerThunk } from "@/store/thunks/auth/RegisterThunk";
+
 import React from "react";
 
 export default function RegisterPage() {
