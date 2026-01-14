@@ -84,8 +84,10 @@ def register():
     )
     db.session.add(new_user)
     db.session.commit()
-
-    return jsonify({"message": "User registered successfully"}), 201
+    
+    user = Users.query.filter_by(email=email).first()
+    access_token = create_access_token(identity=user.id_user)
+    return jsonify({"access_token": access_token}), 201
 
 @bp.route('/is_email_taken', methods=['GET'])
 def check_email():

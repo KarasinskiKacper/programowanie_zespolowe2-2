@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import Cookies from "js-cookie";
 
 const initialState: { access_token: string | null; user: string | null; isAuthenticated: boolean } =
   {
@@ -18,10 +19,12 @@ export const authSlice = createSlice({
       state.user = action.payload.access_token;
       state.isAuthenticated = true;
     },
-    logout: (state, action) => {
+
+    logout: (state) => {
       state.access_token = null;
       state.user = null;
       state.isAuthenticated = false;
+      Cookies.remove("access_token", { path: "/" });
     },
   },
 });

@@ -3,11 +3,15 @@ import { TextInput } from "@/components/inputs/TextInput";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import React, { use } from "react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { autoLogin } from "@/store/thunks/auth/AutoLogin";
+import { loginThunk } from "@/store/thunks/auth/LoginThunk";
+import { logout } from "@/store/slices/authSlice.ts";
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const [email, setEmail] = React.useState("daniel.nowacki@gmail.com");
   const [phone, setPhone] = React.useState("505 677 327");
@@ -17,7 +21,11 @@ export default function HomePage() {
   const [confirmPassword, setConfirmPassword] = React.useState("");
 
   useEffect(() => {
-    dispatch(autoLogin());
+    try {
+      dispatch(autoLogin());
+    } catch (e) {
+      router.push("/logowanie");
+    }
   }, []);
 
   return (
@@ -63,7 +71,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            <Button label="Wyloguj" btnStyle="outline" onClick={() => {}} />
+            <Button label="Wyloguj" btnStyle="outline" onClick={() => dispatch(logout())} />
             <Button label="Zapisz zmiany" onClick={() => {}} />
           </div>
         </div>

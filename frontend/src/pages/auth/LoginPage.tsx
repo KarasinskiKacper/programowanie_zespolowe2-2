@@ -1,8 +1,11 @@
 import { Button } from "@/components/inputs/Button";
 import { TextInput } from "@/components/inputs/TextInput";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { useRouter } from "next/dist/client/components/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import { loginThunk } from "@/store/thunks/auth/LoginThunk";
+import { autoLogin } from "@/store/thunks/auth/AutoLogin";
 
 import React from "react";
 
@@ -14,6 +17,14 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
 
   const [error, setError] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      dispatch(autoLogin());
+    } catch (e) {
+      router.push("/logowanie");
+    }
+  }, []);
 
   const handleOnLoginClick = async () => {
     if (!email) {

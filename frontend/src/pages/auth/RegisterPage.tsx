@@ -2,111 +2,159 @@ import { Button } from "@/components/inputs/Button";
 import { TextInput } from "@/components/inputs/TextInput";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { useRouter } from "next/navigation";
-import { registerThunk } from "@/store/thunks/auth/RegisterThunk";
+import { isEmailTaken, registerThunk } from "@/store/thunks/auth/RegisterThunk";
 
 import React from "react";
 
 export default function RegisterPage() {
-	const dispatch = useAppDispatch();
-	const router = useRouter();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
-	const [email, setEmail] = React.useState("");
-	const [password, setPassword] = React.useState("");
-	const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
 
-	const [name, setName] = React.useState("");
-	const [surname, setSurname] = React.useState("");
-	const [phone, setPhone] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [surname, setSurname] = React.useState("");
+  const [phone, setPhone] = React.useState("");
 
-	const [registerState, setRegisterState] = React.useState("base");
+  const [registerState, setRegisterState] = React.useState("base");
 
-	const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-	const handleOnRegisterClick = () => {
-		if (registerState === "base") {
-			if (password !== confirmPassword) {
-				setError("Hasła muszą być identyczne");
-				return;
-			}
-			if (!email) {
-				setError("E-mail jest wymagany");
-				return;
-			}
-			if (!password) {
-				setError("Hasło jest wymagane");
-				return;
-			}
-			setRegisterState("personal");
-		} else {
-			if (!name) {
-				setError("Imię jest wymagane");
-				return;
-			}
-			if (!surname) {
-				setError("Nazwisko jest wymagane");
-				return;
-			}
-			if (!phone) {
-				setError("Numer telefonu jest wymagany");
-				return;
-			}
+  const handleOnRegisterClick = async () => {
+    if (registerState === "base") {
+      if (password !== confirmPassword) {
+        setError("Hasła muszą być identyczne");
+        return;
+      }
+      if (!email) {
+        setError("E-mail jest wymagany");
+        return;
+      }
+      if (!password) {
+        setError("Hasło jest wymagane");
+        return;
+      }
 
-			setRegisterState("base");
-			dispatch(registerThunk({ email, password, name, surname, phone }));
-		}
-	};
+      if (await isEmailTaken(email)) {
+        setError("E-mail jest już zajęty");
+        return;
+      }
+      setRegisterState("personal");
+      setError("");
+    } else {
+      if (!name) {
+        setError("Imię jest wymagane");
+        return;
+      }
+      if (!surname) {
+        setError("Nazwisko jest wymagane");
+        return;
+      }
+      if (!phone) {
+        setError("Numer telefonu jest wymagany");
+        return;
+      }
 
-	return (
-		<div className="self-stretch flex-1 inline-flex justify-start items-start overflow-hidden">
-			<div className="flex-1 self-stretch p-16 inline-flex flex-col justify-center items-start gap-8 overflow-hidden">
-				<div className="self-stretch flex-1 py-8 bg-zinc-100 flex flex-col justify-center items-center gap-16 overflow-hidden">
-					<img className="flex-1" width="460" height="320" src="/cards.png" />
-				</div>
-				<div className="justify-start text-orange-600 text-6xl font-bold font-['Inter']">Nie przegap okazji!</div>
-			</div>
-			<div className="self-stretch py-16 flex justify-start items-center gap-2.5 overflow-hidden">
-				<div className="w-1 self-stretch relative bg-orange-600 rounded-lg" />
-			</div>
-			<div className="flex-1 self-stretch p-16 inline-flex flex-col justify-start items-start gap-8 overflow-hidden">
-				<div className="justify-start text-orange-600 text-6xl font-bold font-['Inter']">Zarejestruj się</div>
-				<div className="self-stretch p-8 bg-zinc-100 flex flex-col justify-start items-start gap-16 overflow-hidden">
-					<div className="self-stretch flex flex-col justify-start items-start gap-8">
-						{registerState === "base" ? (
-							<>
-								<TextInput label="E-mail" placeholder="Wpisz swój e-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
-								<TextInput label="Hasło" type="password" placeholder="Wpisz swoje hasło" value={password} onChange={(e) => setPassword(e.target.value)} />
-								<TextInput
-									label="Potwierdź hasło"
-									type="password"
-									placeholder="Wpisz ponownie swoje hasło"
-									value={confirmPassword}
-									onChange={(e) => setConfirmPassword(e.target.value)}
-								/>
-							</>
-						) : (
-							<>
-								<TextInput label="Imię" placeholder="Wpisz swoje imię" value={name} onChange={(e) => setName(e.target.value)} />
-								<TextInput label="Nazwisko" placeholder="Wpisz swoje nazwisko" value={surname} onChange={(e) => setSurname(e.target.value)} />
-								<TextInput label="Numer telefonu" placeholder="Wpisz swój numer telefonu" value={phone} onChange={(e) => setPhone(e.target.value)} />
-							</>
-						)}
-						{error && <div className="justify-start text-red-600 text-base font-bold font-['Inter']">{error}</div>}
-					</div>
-				</div>
-				<Button label="Zarejestruj się" onClick={handleOnRegisterClick} />
-				<div className="self-stretch flex-1 inline-flex justify-center items-center gap-4">
-					<div className="flex-1 h-0.5 relative bg-neutral-400 rounded-lg" />
-					<div className="justify-start text-black text-base font-bold font-['Inter']">Masz już konto?</div>
-					<div className="flex-1 h-0.5 relative bg-neutral-400 rounded-lg" />
-				</div>
-				<Button
-					label="Zaloguj się"
-					btnStyle="outline"
-					onClick={() => {
-						router.push("/logowanie");
-					}}
-				/>
-			</div>
-		</div>
-	);
+      setRegisterState("base");
+      try {
+        await dispatch(registerThunk({ email, password, name, surname, phone }));
+      } catch (e) {
+        setError("Rejestracja nie powiodła się");
+        return;
+      }
+      router.push("/");
+    }
+  };
+
+  return (
+    <div className="self-stretch flex-1 inline-flex justify-start items-start overflow-hidden">
+      <div className="flex-1 self-stretch p-16 inline-flex flex-col justify-center items-start gap-8 overflow-hidden">
+        <div className="self-stretch flex-1 py-8 bg-zinc-100 flex flex-col justify-center items-center gap-16 overflow-hidden">
+          <img className="flex-1" width="460" height="320" src="/cards.png" />
+        </div>
+        <div className="justify-start text-orange-600 text-6xl font-bold font-['Inter']">
+          Nie przegap okazji!
+        </div>
+      </div>
+      <div className="self-stretch py-16 flex justify-start items-center gap-2.5 overflow-hidden">
+        <div className="w-1 self-stretch relative bg-orange-600 rounded-lg" />
+      </div>
+      <div className="flex-1 self-stretch p-16 inline-flex flex-col justify-start items-start gap-8 overflow-hidden">
+        <div className="justify-start text-orange-600 text-6xl font-bold font-['Inter']">
+          Zarejestruj się
+        </div>
+        <div className="self-stretch p-8 bg-zinc-100 flex flex-col justify-start items-start gap-16 overflow-hidden">
+          <div className="self-stretch flex flex-col justify-start items-start gap-8">
+            {registerState === "base" ? (
+              <>
+                <TextInput
+                  label="E-mail"
+                  placeholder="Wpisz swój e-mail"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <TextInput
+                  label="Hasło"
+                  type="password"
+                  placeholder="Wpisz swoje hasło"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <TextInput
+                  label="Potwierdź hasło"
+                  type="password"
+                  placeholder="Wpisz ponownie swoje hasło"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </>
+            ) : (
+              <>
+                <TextInput
+                  label="Imię"
+                  placeholder="Wpisz swoje imię"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <TextInput
+                  label="Nazwisko"
+                  placeholder="Wpisz swoje nazwisko"
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                />
+                <TextInput
+                  label="Numer telefonu"
+                  placeholder="Wpisz swój numer telefonu"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </>
+            )}
+            {error && (
+              <div className="justify-start text-red-600 text-base font-bold font-['Inter']">
+                {error}
+              </div>
+            )}
+          </div>
+        </div>
+        <Button label="Zarejestruj się" onClick={handleOnRegisterClick} />
+        <div className="self-stretch flex-1 inline-flex justify-center items-center gap-4">
+          <div className="flex-1 h-0.5 relative bg-neutral-400 rounded-lg" />
+          <div className="justify-start text-black text-base font-bold font-['Inter']">
+            Masz już konto?
+          </div>
+          <div className="flex-1 h-0.5 relative bg-neutral-400 rounded-lg" />
+        </div>
+        <Button
+          label="Zaloguj się"
+          btnStyle="outline"
+          onClick={() => {
+            router.push("/logowanie");
+          }}
+        />
+      </div>
+    </div>
+  );
 }

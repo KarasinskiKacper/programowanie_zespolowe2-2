@@ -1,7 +1,6 @@
 import Cookies from "js-cookie";
 
 import { login } from "@/store/slices/authSlice.ts";
-
 const getToken = () => {
   const token = Cookies.get("access_token");
   console.log(token);
@@ -15,5 +14,7 @@ export const autoLogin = () => (dispatch, getState) => {
 
   if (cookie) {
     dispatch(login({ access_token: cookie }));
+  } else {
+    throw new Error("No access token found");
   }
 };
