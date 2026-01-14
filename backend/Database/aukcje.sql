@@ -16,48 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `auction`
---
-
-DROP TABLE IF EXISTS `auction`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `auction` (
-  `id_auction` int unsigned NOT NULL AUTO_INCREMENT,
-  `id_item` int unsigned NOT NULL,
-  `start_price` decimal(10,2) NOT NULL,
-  `start_auction` datetime NOT NULL,
-  `end_auction` datetime NOT NULL,
-  `overtime_auction` int NOT NULL DEFAULT '0',
-  `id_winner` int unsigned DEFAULT NULL,
-  PRIMARY KEY (`id_auction`),
-  KEY `auction_id_item_foreign` (`id_item`),
-  KEY `auction_id_winner_foreign` (`id_winner`),
-  CONSTRAINT `auction_id_item_foreign` FOREIGN KEY (`id_item`) REFERENCES `auction_item` (`id_item`),
-  CONSTRAINT `auction_id_winner_foreign` FOREIGN KEY (`id_winner`) REFERENCES `users` (`id_user`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `auction_item`
---
-
-DROP TABLE IF EXISTS `auction_item`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `auction_item` (
-  `id_item` int unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) NOT NULL,
-  `description` varchar(2048) NOT NULL,
-  `id_seller` int unsigned NOT NULL,
-  `status` enum('at_auction','sold','not_issued') NOT NULL,
-  PRIMARY KEY (`id_item`),
-  KEY `auction_item_id_seller_foreign` (`id_seller`),
-  CONSTRAINT `auction_item_id_seller_foreign` FOREIGN KEY (`id_seller`) REFERENCES `users` (`id_user`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `auction_price_history`
 --
 
@@ -67,15 +25,58 @@ DROP TABLE IF EXISTS `auction_price_history`;
 CREATE TABLE `auction_price_history` (
   `id_price_history` int unsigned NOT NULL AUTO_INCREMENT,
   `id_auction` int unsigned NOT NULL,
-  `id_users` int unsigned NOT NULL,
+  `id_user` int unsigned NOT NULL,
   `new_price` decimal(10,2) NOT NULL,
-  `date_price_reprint` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `price_reprint_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_price_history`),
   KEY `aph_id_auction_foreign` (`id_auction`),
-  KEY `aph_id_users_foreign` (`id_users`),
-  CONSTRAINT `aph_id_auction_foreign` FOREIGN KEY (`id_auction`) REFERENCES `auction` (`id_auction`),
-  CONSTRAINT `aph_id_users_foreign` FOREIGN KEY (`id_users`) REFERENCES `users` (`id_user`)
+  KEY `aph_id_user_foreign` (`id_user`),
+  CONSTRAINT `aph_id_auction_foreign` FOREIGN KEY (`id_auction`) REFERENCES `auctions` (`id_auction`),
+  CONSTRAINT `aph_id_user_foreign` FOREIGN KEY (`id_user`) REFERENCES `users` (`id_user`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `auctions`
+--
+
+DROP TABLE IF EXISTS `auctions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auctions` (
+  `id_auction` int unsigned NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) NOT NULL,
+  `description` varchar(2048) NOT NULL,
+  `id_seller` int unsigned NOT NULL,
+  `start_price` decimal(10,2) NOT NULL,
+  `start_date` datetime NOT NULL,
+  `end_date` datetime NOT NULL,
+  `overtime` int NOT NULL DEFAULT '0',
+  `status` enum('at_auction','sold','not_issued') NOT NULL,
+  `id_winner` int unsigned DEFAULT NULL,
+  PRIMARY KEY (`id_auction`),
+  KEY `auction_id_winner_foreign` (`id_winner`),
+  KEY `auction_item_id_seller_foreign` (`id_seller`),
+  CONSTRAINT `auction_id_winner_foreign` FOREIGN KEY (`id_winner`) REFERENCES `users` (`id_user`),
+  CONSTRAINT `auction_item_id_seller_foreign` FOREIGN KEY (`id_seller`) REFERENCES `users` (`id_user`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `categorie_auction`
+--
+
+DROP TABLE IF EXISTS `categories_auction`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `categories_auction` (
+  `id_category` int unsigned NOT NULL,
+  `id_auction` int unsigned NOT NULL,
+  PRIMARY KEY (`id_category`,`id_auction`),
+  KEY `ci_id_auction_foreign` (`id_auction`),
+  CONSTRAINT `ci_id_auction_foreign` FOREIGN KEY (`id_auction`) REFERENCES `auctions` (`id_auction`),
+  CONSTRAINT `ci_id_cat_foreign` FOREIGN KEY (`id_category`) REFERENCES `categories` (`id_category`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,27 +87,10 @@ DROP TABLE IF EXISTS `categories`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `categories` (
-  `id_categories` int unsigned NOT NULL AUTO_INCREMENT,
-  `categories_name` varchar(255) NOT NULL,
-  PRIMARY KEY (`id_categories`)
+  `id_category` int unsigned NOT NULL AUTO_INCREMENT,
+  `category_name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id_category`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `categories_item`
---
-
-DROP TABLE IF EXISTS `categories_item`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `categories_item` (
-  `id_cat` int unsigned NOT NULL,
-  `id_item` int unsigned NOT NULL,
-  PRIMARY KEY (`id_cat`,`id_item`),
-  KEY `ci_id_item_foreign` (`id_item`),
-  CONSTRAINT `ci_id_cat_foreign` FOREIGN KEY (`id_cat`) REFERENCES `categories` (`id_categories`),
-  CONSTRAINT `ci_id_item_foreign` FOREIGN KEY (`id_item`) REFERENCES `auction_item` (`id_item`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -118,12 +102,12 @@ DROP TABLE IF EXISTS `photos_item`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `photos_item` (
   `id_photo` int unsigned NOT NULL AUTO_INCREMENT,
-  `id_item` int unsigned NOT NULL,
+  `id_auction` int unsigned NOT NULL,
   `photo` varchar(512) NOT NULL,
   `is_main_photo` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id_photo`),
-  KEY `photos_item_id_item_foreign` (`id_item`),
-  CONSTRAINT `photos_item_id_item_foreign` FOREIGN KEY (`id_item`) REFERENCES `auction_item` (`id_item`)
+  KEY `photos_item_id_auction_foreign` (`id_auction`),
+  CONSTRAINT `photos_item_id_auction_foreign` FOREIGN KEY (`id_auction`) REFERENCES `auctions` (`id_auction`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -156,4 +140,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-03  2:47:31
+-- Dump completed on 2026-01-12 15:31:30

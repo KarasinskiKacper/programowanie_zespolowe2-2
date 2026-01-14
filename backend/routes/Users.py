@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from narwhals import Datetime
+from datetime import datetime
 from db_objects import Users, db
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
@@ -80,9 +80,21 @@ def register():
         email=email,
         password=password,
         phone_number=phone_number,
-        create_account_date=Datetime.utcnow()
+        create_account_date=datetime.now()
     )
     db.session.add(new_user)
     db.session.commit()
+    
+    user = Users.query.filter_by(email=email).first()
+    access_token = create_access_token(identity=user.id_user)
+    return jsonify({"access_token": access_token}), 201
 
-    return jsonify({"message": "User registered successfully"}), 201
+@bp.route('/is_email_taken', methods=['GET'])
+def check_email():
+    email = request.args.get('email')
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user_exists = Users.query.filter_by(email=email).first() is not None
+    return jsonify({"exists": bool(user_exists) }), 200
