@@ -44,18 +44,18 @@ export default function Header() {
         </div>
       )}
       {isAuthenticated && (
-        <div
-          className="self-stretch flex justify-start items-center"
-          onClick={() => {
-            router.push("/profil");
-          }}
-        >
+        <div className="self-stretch flex justify-start items-center">
           <div className="self-stretch px-8 flex justify-start items-center">
             <HeaderIcon name="add" size={40} />
             <HeaderIcon name="auctions" size={40} />
             <HeaderIcon name="ring" size={32} />
           </div>
-          <div className="self-stretch justify-start items-center px-2 gap-2 pt-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)]">
+          <div
+            onClick={() => {
+              router.push("/profil");
+            }}
+            className="self-stretch justify-start items-center px-2 gap-2 pt-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)]"
+          >
             <div className="justify-start text-white text-2xl font-bold font-['Inter'] underline">
               {first_name} {last_name}
             </div>
