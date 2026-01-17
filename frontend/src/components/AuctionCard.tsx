@@ -1,6 +1,11 @@
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAppDispatch } from "@/store/store";
 
 import { useCountdown } from "@/hooks/useCountdown";
+
+import { getAuctionPhotoThunk } from "@/store/thunks/AuctionsThunk";
+import { get } from "http";
 
 export const AuctionCard = ({
   product,
@@ -14,8 +19,20 @@ export const AuctionCard = ({
     slug: string;
   };
 }) => {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const timeLeft = useCountdown(product.endDate);
+  const [imageAPIUrl, setImageUrl] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const photoData = await dispatch(getAuctionPhotoThunk(product.imageUrl));
+      console.log(photoData);
+
+      setImageUrl(photoData);
+    })();
+  }, []);
+
   return (
     <div
       className="flex-1 self-stretch p-4 bg-white inline-flex flex-col justify-start items-start gap-6 overflow-hidden cursor-pointer"
@@ -23,7 +40,7 @@ export const AuctionCard = ({
         router.push(`/aukcja/${product.id}`);
       }}
     >
-      <img className="self-stretch h-52 relative bg-neutral-400" src={product.imageUrl} />
+      <img className="self-stretch flex" src={imageAPIUrl} />
       <div className="self-stretch flex flex-col justify-start items-start gap-2">
         <div className="self-stretch flex flex-col justify-start items-start gap-2.5">
           <div className="self-stretch flex flex-col justify-start items-start gap-2.5">

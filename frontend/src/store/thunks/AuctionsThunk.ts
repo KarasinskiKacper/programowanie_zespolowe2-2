@@ -9,4 +9,14 @@ export const getAllAuctionsThunk = () => async (dispatch, getState) => {
   return data;
 };
 
-// export const
+export const getAuctionPhotoThunk = (imageUrl) => async (dispatch, getState) => {
+  const response = await fetch(`${process.env.BASE_BACKEND_API_URL}/uploads/${imageUrl}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    return "a";
+  }
+  const data = await response;
+  return data.url;
+};
