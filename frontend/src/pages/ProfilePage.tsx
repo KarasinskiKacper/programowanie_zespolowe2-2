@@ -9,7 +9,7 @@ import { logout } from "@/store/slices/authSlice.ts";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { selectAuth, formatAuthDate } from "@/store/slices/authSelector";
 
-import handleAutoLogin from "@/components/AutoLoginHandler";
+import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
 import { changePasswordThunk } from "@/store/thunks/auth/ChangePasswordThunk";
 
 export default function HomePage() {
@@ -35,7 +35,7 @@ export default function HomePage() {
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
 
-  handleAutoLogin();
+  handleAutoLoginWithRerouteToLoginPage();
 
   useEffect(() => {
     setNewEmail(email ?? "");
