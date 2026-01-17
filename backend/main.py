@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from db_objects import db
 from flask_jwt_extended import JWTManager
-
+from auctions import socketio
 
 def create_app():
     load_dotenv()
@@ -26,6 +26,8 @@ def create_app():
 
     jwt = JWTManager(app)
 
+    socketio.init_app(app)  
+
     db.init_app(app)
 
     from routes.Auctions import bp as auctions_bp
@@ -41,6 +43,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    # with app.app_context():
-    #     db.create_all()
-    app.run(debug=True, host="0.0.0.0")
+    socketio.run(app, debug=True, host=os.getenv("BACKEND_HOST"), port=os.getenv("BACKEND_PORT"))
