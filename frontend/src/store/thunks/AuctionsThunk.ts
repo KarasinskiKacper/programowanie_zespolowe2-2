@@ -20,3 +20,12 @@ export const getAuctionPhotoThunk = (imageUrl) => async (dispatch, getState) => 
   const data = await response;
   return data.url;
 };
+
+
+export const getAuctionDetailsThunk = (auctionId) => async (dispatch, getState) => {
+  const response = await fetch(`${BASE_URL}/get_auction_details?id_auction=${auctionId}`, {
+    method: "GET",
+  })
+  const data = await response.json();
+  return data;
+}

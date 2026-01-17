@@ -1,5 +1,5 @@
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { selectAuth, formatAuthDate } from "@/store/slices/authSelector";
+import { selectAuth } from "@/store/slices/authSelector";
 import Icon from "../icon/Icon";
 import { icons } from "../icon/Icon";
 import { useRouter } from "next/dist/client/components/navigation";
