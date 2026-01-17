@@ -43,40 +43,38 @@ def close_auction_if_ended(auction_id, expected_overtime=0):
             schedule_next_auction()
             return
         
-        timestamp = datetime.now()
-        auction_end_time = auction.end_date + timedelta(seconds=auction.overtime or 0)
+        lock = get_auction_lock(auction_id)
+        with lock:
+            db.session.refresh(auction)
 
-        job = scheduler.get_job(f'close_auction_{auction.id_auction}')
-        if job and hasattr(job, 'kwargs') and 'expected_overtime' in job.kwargs:
-            expected_overtime = job.kwargs['expected_overtime']
-        else:
-            expected_overtime = auction.overtime or 0
+            timestamp = datetime.now()
+            auction_end_time = auction.end_date + timedelta(seconds=auction.overtime or 0)
 
-        if auction.overtime > expected_overtime:
-            logger.debug(f"Auction {auction_id} overtime changed from {expected_overtime} to {auction.overtime}. Rescheduling closure.")
-            schedule_next_auction()
-            return
-        
-        if timestamp < auction_end_time:
-            logger.debug(f"Auction {auction_id} has not ended yet. Current time: {timestamp}, End time: {auction_end_time}. Rescheduling closure.")
-            schedule_next_auction()
-            return
+            if auction.overtime > expected_overtime:
+                logger.debug(f"Auction {auction_id} overtime changed from {expected_overtime} to {auction.overtime}. Rescheduling closure.")
+                schedule_next_auction()
+                return
+            
+            if timestamp < auction_end_time:
+                logger.debug(f"Auction {auction_id} has not ended yet. Current time: {timestamp}, End time: {auction_end_time}. Rescheduling closure.")
+                schedule_next_auction()
+                return
 
-        highest_bid = (
-        AuctionPriceHistory.query
-        .filter_by(id_auction=auction.id_auction)
-        .order_by(desc(AuctionPriceHistory.new_price))
-        .first())
+            highest_bid = (
+            AuctionPriceHistory.query
+            .filter_by(id_auction=auction.id_auction)
+            .order_by(desc(AuctionPriceHistory.new_price))
+            .first())
 
-        auction.status = 'sold'
-        if highest_bid:
-            auction.id_winner = highest_bid.id_user
-            logger.debug(f"Auction {auction_id} closed. Winner: User {highest_bid.id_user} with bid {highest_bid.new_price}.")
-        else:
-            auction.id_winner = None
-            logger.debug(f"Auction {auction_id} closed with no bids.")
+            auction.status = 'sold'
+            if highest_bid:
+                auction.id_winner = highest_bid.id_user
+                logger.debug(f"Auction {auction_id} closed. Winner: User {highest_bid.id_user} with bid {highest_bid.new_price}.")
+            else:
+                auction.id_winner = None
+                logger.debug(f"Auction {auction_id} closed with no bids.")
 
-        db.session.commit()
+            db.session.commit()
 
         socketio.emit('auction_closed', {
             'id_auction': auction.id_auction,
