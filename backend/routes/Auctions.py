@@ -152,15 +152,16 @@ def place_bid():
     if not auction:
         return jsonify({"error": "Auction not found"}), 404
 
-    if auction.status != "at_auction":
-        return jsonify({"error": "Auction is not active"}), 400
-
-    auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
-    if timestamp > auction_end:
-        return jsonify({"error": "Bid was placed after the auction ended"}), 400
-
     lock = get_auction_lock(auction_id)
     with lock:
+        db.session.refresh(auction)
+        if auction.status != "at_auction":
+            return jsonify({"error": "Auction is not active"}), 400
+        
+        auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
+        if timestamp > auction_end:
+            return jsonify({"error": "Bid was placed after the auction ended"}), 400
+
 
         highest_bid = (
             AuctionPriceHistory.query
@@ -194,17 +195,17 @@ def place_bid():
         db.session.add(price_history)
         db.session.commit()
 
-        if overtime_changed:
-            on_auction_update()
+    if overtime_changed:
+        on_auction_update()
 
-        socketio.emit('auction_updated', {
-            "id_auction": auction.id_auction,
-            "new_price": str(new_price),
-            "id_user": user_id,
-            "overtime": auction.overtime
-        }, to=f'auction_{auction.id_auction}')
+    socketio.emit('auction_updated', {
+        "id_auction": auction.id_auction,
+        "new_price": str(new_price),
+        "id_user": user_id,
+        "overtime": auction.overtime
+    }, to=f'auction_{auction.id_auction}')
 
-        return jsonify({"message": "Bid placed successfully"}), 200
+    return jsonify({"message": "Bid placed successfully"}), 200
 
 @bp.route('/get_user_own_auctions', methods=['GET'])
 @jwt_required()
