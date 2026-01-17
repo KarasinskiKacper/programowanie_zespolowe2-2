@@ -3,7 +3,7 @@ from sqlalchemy import asc, desc, func
 from datetime import datetime, timedelta
 from db_objects import Users, db, Auctions, PhotosItem, AuctionPriceHistory
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from auctions import socketio, get_auction_lock
+from auctions import socketio, get_auction_lock, on_auction_update
 
 bp = Blueprint('auctions', __name__, url_prefix='/api')
 
@@ -125,6 +125,9 @@ def create_auction():
     db.session.add(new_auction)
     db.session.add_all(new_photos)
     db.session.commit()
+
+    on_auction_update()
+
     return jsonify({"message": "Auction created successfully", "id_auction": new_auction.id_auction}), 201
 
 @bp.route('/place_bid', methods=['POST'])
@@ -135,15 +138,15 @@ def place_bid():
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
 
     data = request.get_json() or {}
 
     auction_id = data.get("id_auction")
-    user_id = data.get("id_user")
     new_price = data.get("new_price")
 
-    if not auction_id or not user_id or new_price is None:
-        return jsonify({"error": "id_auction, id_user, new_price are required"}), 400
+    if not auction_id or new_price is None:
+        return jsonify({"error": "id_auction, new_price are required"}), 400
 
     auction = Auctions.query.get(auction_id)
     if not auction:
@@ -183,16 +186,22 @@ def place_bid():
             price_reprint_date=timestamp
         )
 
-        if (auction_end - timestamp).total_seconds() <= 60:
-            auction.overtime = 60
+        overtime_changed = False
+        if (auction_end - timestamp).total_seconds() < 60:
+            auction.overtime += 60
+            overtime_changed = True
 
         db.session.add(price_history)
         db.session.commit()
 
+        if overtime_changed:
+            on_auction_update()
+
         socketio.emit('auction_updated', {
             "id_auction": auction.id_auction,
             "new_price": str(new_price),
-            "id_user": user_id
+            "id_user": user_id,
+            "overtime": auction.overtime
         }, to=f'auction_{auction.id_auction}')
 
         return jsonify({"message": "Bid placed successfully"}), 200
@@ -331,5 +340,7 @@ def delete_auction():
         
     db.session.delete(auction)
     db.session.commit()
+
+    on_auction_update()
 
     return jsonify({"message": "Auction deleted successfully"}), 200

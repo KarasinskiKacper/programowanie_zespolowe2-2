@@ -5,7 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from db_objects import db
 from flask_jwt_extended import JWTManager
-from auctions import socketio
+from auctions import socketio, start_scheduler
+import atexit
 
 def create_app():
     load_dotenv()
@@ -43,4 +44,8 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
+
+    scheduler = start_scheduler()
+    atexit.register(lambda: scheduler.shutdown())
+
     socketio.run(app, debug=True, host=os.getenv("BACKEND_HOST"), port=os.getenv("BACKEND_PORT"))
