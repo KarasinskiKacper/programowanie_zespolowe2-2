@@ -19,7 +19,7 @@ def allowed_file(filename):
 bp = Blueprint('uploads', __name__, url_prefix='')
 
 @bp.route('/api/upload_image', methods=['POST'])
-# @jwt_required() TODO uncomment when jwt is implemented
+@jwt_required()
 def upload_image():
     upload_directory =  current_app.config.get('UPLOAD_DIRECTORY', 'uploads')
     max_file_size = current_app.config.get('MAX_FILE_SIZE', 10 * 1024 * 1024)  # default: 10MB

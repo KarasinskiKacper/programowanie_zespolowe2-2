@@ -86,7 +86,7 @@ def register():
     db.session.commit()
     
     user = Users.query.filter_by(email=email).first()
-    access_token = create_access_token(identity=user.id_user)
+    access_token = create_access_token(identity=str(user.id_user))
     return jsonify({"access_token": access_token}), 201
 
 @bp.route('/is_email_taken', methods=['GET'])
