@@ -3,6 +3,7 @@ from sqlalchemy import asc, desc, func
 from datetime import datetime, timedelta
 from db_objects import Users, db, Auctions, PhotosItem, AuctionPriceHistory
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from auctions import socketio, get_auction_lock, on_auction_update
 
 bp = Blueprint('auctions', __name__, url_prefix='/api')
 
@@ -84,10 +85,16 @@ def get_auction_details():
     }), 200
     
 @bp.route('/create_auction', methods=['POST'])
+@jwt_required()
 def create_auction():
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json()
     
-    required = ["title", "description", "id_seller", "start_price", "start_date", "end_date", "status"]
+    required = ["title", "description", "start_price", "start_date", "end_date"]
     missing = [k for k in required if k not in data]
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
@@ -95,13 +102,12 @@ def create_auction():
     new_auction = Auctions(
         description=data.get("description"),
         title=data["title"],
-        id_seller=data["id_seller"],
+        id_seller=user_id,
         start_price=data["start_price"],
         start_date=datetime.fromisoformat(data["start_date"]),
         end_date=datetime.fromisoformat(data["end_date"]),
-        overtime=data.get("overtime", 0),
-        status=data["status"],
-        id_winner=data.get("id_winner")
+        overtime= 0,
+        status= "at_auction" if datetime.fromisoformat(data["start_date"]) >= datetime.now() else "not_issued",
     )
     
     
@@ -119,56 +125,95 @@ def create_auction():
     db.session.add(new_auction)
     db.session.add_all(new_photos)
     db.session.commit()
+
+    on_auction_update()
+
     return jsonify({"message": "Auction created successfully", "id_auction": new_auction.id_auction}), 201
 
 @bp.route('/place_bid', methods=['POST'])
+@jwt_required()
 def place_bid():
+    timestamp = datetime.now()
+
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json() or {}
 
     auction_id = data.get("id_auction")
-    user_id = data.get("id_user")
     new_price = data.get("new_price")
 
-    if not auction_id or not user_id or new_price is None:
-        return jsonify({"error": "id_auction, id_user, new_price are required"}), 400
+    if not auction_id or new_price is None:
+        return jsonify({"error": "id_auction, new_price are required"}), 400
 
     auction = Auctions.query.get(auction_id)
     if not auction:
         return jsonify({"error": "Auction not found"}), 404
 
-    auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
-    if datetime.now() > auction_end:
-        return jsonify({"error": "Auction has already ended"}), 400
+    lock = get_auction_lock(auction_id)
+    with lock:
+        db.session.refresh(auction)
+        if auction.status != "at_auction":
+            return jsonify({"error": "Auction is not active"}), 400
+        
+        auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
+        if timestamp > auction_end:
+            return jsonify({"error": "Bid was placed after the auction ended"}), 400
 
-    highest_bid = (
-        AuctionPriceHistory.query
-        .filter_by(id_auction=auction.id_auction)
-        .order_by(desc(AuctionPriceHistory.new_price))
-        .first()
-    )
-    current_price = highest_bid.new_price if highest_bid else auction.start_price
 
-    if float(new_price) <= float(current_price):
-        return jsonify({"error": "Bid must be higher than current price"}), 400
+        highest_bid = (
+            AuctionPriceHistory.query
+            .filter_by(id_auction=auction.id_auction)
+            .order_by(desc(AuctionPriceHistory.new_price))
+            .first()
+        )
+        current_price = highest_bid.new_price if highest_bid else auction.start_price
+        last_bid_timestamp = highest_bid.price_reprint_date if highest_bid else None
 
-    price_history = AuctionPriceHistory(
-        id_auction=auction.id_auction,
-        id_user=user_id,
-        new_price=new_price,
-        price_reprint_date=datetime.now()
-    )
+        if last_bid_timestamp and timestamp < last_bid_timestamp:
+            return jsonify({"error": "A newer bid has already been placed"}), 400
 
-    db.session.add(price_history)
-    db.session.commit()
+        min_increment = 1.0
+
+        if float(new_price) <= float(current_price) + min_increment:
+            return jsonify({"error": f"Bid must be at least {min_increment} higher than the current price"}), 400
+
+        price_history = AuctionPriceHistory(
+            id_auction=auction.id_auction,
+            id_user=user_id,
+            new_price=new_price,
+            price_reprint_date=timestamp
+        )
+
+        overtime_changed = False
+        if (auction_end - timestamp).total_seconds() < 60:
+            auction.overtime += 60
+            overtime_changed = True
+
+        db.session.add(price_history)
+        db.session.commit()
+
+    if overtime_changed:
+        on_auction_update()
+
+    socketio.emit('auction_updated', {
+        "id_auction": auction.id_auction,
+        "new_price": str(new_price),
+        "id_user": user_id,
+        "overtime": auction.overtime
+    }, to=f'auction_{auction.id_auction}')
 
     return jsonify({"message": "Bid placed successfully"}), 200
 
 @bp.route('/get_user_own_auctions', methods=['GET'])
+@jwt_required()
 def get_user_own_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
-    
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
 
     auctions = Auctions.query.filter_by(id_seller=user_id).all()
     results = []
@@ -195,10 +240,12 @@ def get_user_own_auctions():
     return jsonify(results), 200
 
 @bp.route('/get_user_auctions', methods=['GET'])
+@jwt_required()
 def get_user_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
 
     entries = AuctionPriceHistory.query.filter_by(id_user=user_id).with_entities(AuctionPriceHistory.id_auction).distinct().all()
     
@@ -227,10 +274,12 @@ def get_user_auctions():
     return jsonify(results), 200
 
 @bp.route('/archived_auctions', methods=['GET'])
+@jwt_required()
 def archived_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
     
     auctions = Auctions.query.filter(Auctions.id_seller == user_id).all()
     
@@ -261,13 +310,18 @@ def archived_auctions():
     return jsonify(results), 200
 
 @bp.route('/delete_auction', methods=['POST'])
+@jwt_required()
 def delete_auction():
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json()
     auction_id = data.get('id_auction')
-    user_id = data.get('id_user')
     
-    if not auction_id or not user_id:
-        return jsonify({"error": "id_auction and id_user are required"}), 400
+    if not auction_id:
+        return jsonify({"error": "id_auction is required"}), 400
 
     auction = Auctions.query.get(auction_id)
     if not auction:
@@ -287,5 +341,7 @@ def delete_auction():
         
     db.session.delete(auction)
     db.session.commit()
+
+    on_auction_update()
 
     return jsonify({"message": "Auction deleted successfully"}), 200
