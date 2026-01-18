@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
 import { createNewAuctionThunk } from "@/store/thunks/AuctionsThunk";
+import { useRouter } from "next/navigation";
 
 const toDatetimeLocal = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -28,6 +29,7 @@ type ImageItem = { file: File; previewUrl: string };
 
 export default function NewAuctionPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -38,6 +40,8 @@ export default function NewAuctionPage() {
 
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+
+  const [error, setError] = useState<string | null>(null);
 
   handleAutoLoginWithRerouteToLoginPage();
 
@@ -159,20 +163,43 @@ export default function NewAuctionPage() {
             <div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
             <Button
               label="Utwórz aukcję"
-              onClick={() => {
-                dispatch(
-                  createNewAuctionThunk({
-                    images,
-                    title,
-                    startPrice: Number(startPrice),
-                    description,
-                    startDate,
-                    endDate,
-                  }),
-                );
+              onClick={async () => {
+                if (
+                  !title ||
+                  !startPrice ||
+                  !description ||
+                  !startDate ||
+                  !endDate ||
+                  images.length === 0
+                ) {
+                  setError("Nie wszystkie pola zostały wypełnione.");
+                  return;
+                }
+
+                if (
+                  (await dispatch(
+                    createNewAuctionThunk({
+                      images,
+                      title,
+                      startPrice: Number(startPrice),
+                      description,
+                      startDate,
+                      endDate,
+                    }),
+                  )) == false
+                ) {
+                  setError("Coś poszło nie tak podczas tworzenia aukcji.");
+                } else {
+                  router.push("/");
+                }
               }}
               size="large"
             />
+            {error && (
+              <div className="justify-start text-red-600 text-base font-bold font-['Inter']">
+                {error}
+              </div>
+            )}
           </div>
         </div>
         <div className="self-stretch p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 flex flex-col justify-start items-start gap-4 overflow-hidden">

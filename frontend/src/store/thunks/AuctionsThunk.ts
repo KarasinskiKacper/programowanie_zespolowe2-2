@@ -80,8 +80,10 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
     }),
   });
 
-  const data = await response.json();
-  console.log(data);
+  if (!response.ok) {
+    return false;
+  }
 
+  const data = await response.json();
   return data;
 };

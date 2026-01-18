@@ -111,7 +111,10 @@ def create_auction():
         status= "at_auction" if datetime.fromisoformat(data["start_date"]) >= datetime.now() else "not_issued",
     )
     
-    
+    db.session.add(new_auction)
+    db.session.flush()
+    db.session.refresh(new_auction)
+
     photos = data.get("photos", [])
     new_photos = []
     for p in photos:
@@ -124,7 +127,7 @@ def create_auction():
             )
         )
 
-    db.session.add(new_auction)
+    
     db.session.add_all(new_photos)
     db.session.commit()
 
