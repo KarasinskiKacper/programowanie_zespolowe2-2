@@ -95,6 +95,7 @@ def create_auction():
     data = request.get_json()
     
     required = ["title", "description", "start_price", "start_date", "end_date"]
+    
     missing = [k for k in required if k not in data]
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
@@ -114,6 +115,7 @@ def create_auction():
     photos = data.get("photos", [])
     new_photos = []
     for p in photos:
+        print(p)
         new_photos.append(
             PhotosItem(
                 id_auction=new_auction.id_auction,

@@ -46,7 +46,7 @@ def upload_image():
     filepath = os.path.join(upload_directory, unique_filename)
     image.save(filepath)
 
-    image_url = f"/uploads/{unique_filename}"
+    image_url = f"/{unique_filename}"
 
     return jsonify({'image_url': image_url}), 201
 

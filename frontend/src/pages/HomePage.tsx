@@ -31,6 +31,8 @@ export default function HomePage() {
         imageUrl: product.main_photo,
         endDate: product.end_date,
       }));
+      console.log("home", data);
+      
       setProducts(data);
     })();
   }, []);
