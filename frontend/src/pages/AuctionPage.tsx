@@ -1,15 +1,71 @@
 import { Button } from "@/components/inputs/Button";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import React from "react";
+import { useState, useEffect } from "react";
+import { useParams } from 'next/navigation'
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { parseISO, format } from 'date-fns'
+
+import { useCountdown } from "@/hooks/useCountdown";
+
+
+import { getAuctionPhotoThunk, getAuctionDetailsThunk } from "@/store/thunks/AuctionsThunk";
 
 export default function AuctionPage() {
 	const dispatch = useAppDispatch();
-
+	const params = useParams()
+	const auctionId = params['auction-slug']
+	
 	const [selectedImageIndex, setSelectedImageIndex] = React.useState(0);
 
-	const product: any = {
+	const [auctionData, setAuctionData] = useState(null);
+	  const [endDate, setEndDate] = useState<string | null>(null)
+
+	useEffect(() => {
+		(async () => {
+			const auctionDetails = await dispatch(getAuctionDetailsThunk(auctionId));
+			console.log(auctionDetails);
+
+			const imagesUrl = [auctionDetails.main_photo, ...auctionDetails.photos];
+			const images = []
+			await imagesUrl.forEach(async (imageUrl) => {
+				const photoData = await dispatch(getAuctionPhotoThunk(imageUrl));
+				images.push(photoData);
+				console.log(imageUrl);
+				
+			})
+
+			const data = {
+				title: auctionDetails.title,
+				startPrice: Math.round(auctionDetails.start_price),
+				price: Math.round(auctionDetails.current_price),
+				time: auctionDetails.end_date,
+				owner: {
+					name: auctionDetails.owner_name,
+					avatarUrl: "", // TODO: add avatar url
+					id: auctionDetails.id_owner,
+				},
+				winner: {
+					name: auctionDetails.winner_name,
+					avatarUrl: "", // TODO: add avatar url
+					id: auctionDetails.id_winner,
+					time:  auctionDetails.id_winner ? auctionDetails.end_date : null,
+				},
+				startDate: auctionDetails.start_date,
+				endDate: auctionDetails.end_date,
+				description: auctionDetails.description.trim(),
+				images: images,
+			}
+			console.log(data.images);
+			setEndDate(data.endDate)
+			setAuctionData(data);
+		})();
+	}, []);
+
+	const timeLeft = useCountdown(endDate);
+
+	const auctionDataOld: any = {
 		title: "Ekspres ciśnieniowy DeLonghi Magnifica Start ECAM220.80.SB 1450W",
 		startPrice: 1000,
 		price: 1999,
@@ -21,13 +77,11 @@ export default function AuctionPage() {
 		],
 		time: "2 dni 4 godz",
 		owner: {
-			name: "Daniel",
-			surname: "Nowacki",
+			name: "Daniel Nowacki",
 			avatarUrl: "",
 		},
 		winner: {
-			name: "Robert",
-			surname: "Ryś",
+			name: "Robert Ryś",
 			avatarUrl: "",
 			time: "14.12.2025 13:20",
 		},
@@ -63,14 +117,14 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 			<div className="w-full max-w-[1400px] flex flex-col justify-start items-start gap-16 overflow-hidden">
 				<div className="self-stretch inline-flex justify-start items-center gap-8">
 					<div className="flex-1 p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
-						<div className="self-stretch justify-start text-black text-3xl font-bold font-['Inter']">{product.title}</div>
+						<div className="self-stretch justify-start text-black text-3xl font-bold font-['Inter']">{auctionData?.title}</div>
 						<div className="self-stretch flex flex-col justify-start items-start gap-8">
 							<img
-								src={product.images[selectedImageIndex]}
+								src={auctionData?.images[selectedImageIndex]}
 								className={`w-full h-full object-contain max-h-96`}
 							/>
 							<div className="self-stretch inline-flex justify-start items-center gap-4 overflow-hidden">
-								{product.images.map((image: string, index: number) => (
+								{auctionData?.images.map((image: string, index: number) => (
 									<div key={index} className="w-32 h-32 bg-neutral-400">
 										<img
 											src={image}
@@ -85,22 +139,22 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 					<div className="w-[512px] self-stretch p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-8 overflow-hidden">
 						<div className="self-stretch flex flex-col justify-start items-start">
 							<div className="self-stretch text-center justify-start text-zinc-400 text-xl font-bold font-['Inter']">Czas do końca aukcji</div>
-							<div className="self-stretch text-center justify-start text-black text-3xl font-bold font-['Inter']">{product.time}</div>
+							<div className="self-stretch text-center justify-start text-black text-3xl font-bold font-['Inter']">{timeLeft}</div>
 						</div>
 						<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
 						<div className="self-stretch flex flex-col justify-start items-start gap-8">
 							<div className="flex flex-col justify-start items-start gap-2">
 								<div className="inline-flex justify-center items-end gap-1">
-									<div className="justify-start text-brand-primary text-8xl font-bold font-['Inter']">{product.price}</div>
+									<div className="justify-start text-brand-primary text-8xl font-bold font-['Inter']">{auctionData?.price}</div>
 									<div className="justify-start text-brand-primary text-6xl font-bold font-['Inter']">zł</div>
 								</div>
 								<div className="inline-flex justify-start items-center gap-2">
 									<div className="w-16 h-16 relative bg-zinc-400 rounded-[64px]" />
 									<div className="inline-flex flex-col justify-center items-start gap-1">
 										<div className="justify-start text-black text-xl font-bold font-['Inter']">
-											{product.winner.name} {product.winner.surname}
+											{auctionData?.winner?.name}
 										</div>
-										<div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">{product.winner.time}</div>
+										<div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">{auctionData?.winner?.time && format(parseISO(auctionData?.winner?.time), "dd.MM.yyyy HH:mm")}</div>
 									</div>
 								</div>
 							</div>
@@ -114,21 +168,21 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 							<div className="inline-flex justify-start items-center gap-2">
 								<div className="w-8 h-8 relative bg-zinc-400 rounded-[64px]" />
 								<div className="justify-start text-black text-xl font-bold font-['Inter']">
-									{product.owner.name} {product.owner.surname}
+									{auctionData?.owner?.name}
 								</div>
 							</div>
 							<div className="flex flex-col justify-start items-start gap-1">
 								<div className="inline-flex justify-start items-start gap-2">
 									<div className="justify-start text-black text-xl font-normal font-['Inter']">Cena początkowa:</div>
-									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.startPrice}zł</div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{auctionData?.startPrice}zł</div>
 								</div>
 								<div className="inline-flex justify-start items-start gap-2">
 									<div className="justify-start text-black text-xl font-normal font-['Inter']">Start aukcji:</div>
-									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.startDate}</div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{auctionData?.startDate && format(parseISO(auctionData?.startDate), "dd.MM.yyyy HH:mm")}</div>
 								</div>
 								<div className="inline-flex justify-start items-start gap-2">
 									<div className="justify-start text-black text-xl font-normal font-['Inter']">Koniec aukcji: </div>
-									<div className="justify-start text-black text-xl font-normal font-['Inter']">{product.endDate}</div>
+									<div className="justify-start text-black text-xl font-normal font-['Inter']">{auctionData?.endDate && format(parseISO(auctionData?.endDate), "dd.MM.yyyy HH:mm")}</div>
 								</div>
 							</div>
 						</div>
@@ -137,7 +191,7 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 				<div className="self-stretch p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 flex flex-col justify-start items-start gap-4 overflow-hidden">
 					<div className="justify-start text-orange-600 text-2xl font-bold font-['Inter']">Opis</div>
 					<div className="self-stretch justify-start flex-col">
-						<ReactMarkdown remarkPlugins={[remarkGfm]}>{product.description}</ReactMarkdown>
+						<ReactMarkdown remarkPlugins={[remarkGfm]}>{auctionData?.description}</ReactMarkdown>
 					</div>
 				</div>
 			</div>
