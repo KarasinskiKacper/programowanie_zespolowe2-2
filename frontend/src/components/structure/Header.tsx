@@ -47,7 +47,7 @@ export default function Header() {
         <div className="self-stretch flex justify-start items-center">
           <div className="self-stretch px-8 flex justify-start items-center">
             <HeaderIcon name="add" size={40} onClick={() => router.push("/nowa-aukcja")} />
-            <HeaderIcon name="auctions" size={40} />
+            <HeaderIcon name="auctions" size={40} onClick={() => router.push("/moje-aukcje")} />
             <HeaderIcon name="ring" size={32} />
           </div>
           <div

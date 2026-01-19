@@ -27,8 +27,7 @@ export const AuctionCard = ({
   useEffect(() => {
     (async () => {
       const photoData = await dispatch(getAuctionPhotoThunk(product.imageUrl));
-      console.log(photoData);
-
+      
       setImageUrl(photoData);
     })();
   }, []);

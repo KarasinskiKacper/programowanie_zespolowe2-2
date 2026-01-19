@@ -1,10 +1,62 @@
-import { start } from "repl";
-
 const BASE_URL = `${process.env.BASE_BACKEND_API_URL}/api`;
 
 export const getAllAuctionsThunk = () => async (dispatch, getState) => {
   const response = await fetch(`${BASE_URL}/get_all_auctions`, {
     method: "GET",
+  });
+
+  const data = await response.json();
+  return data;
+};
+
+export const getUserOwnAuctionsThunk = () => async (dispatch, getState) => {
+  const accessToken = getState().auth.access_token;
+  const response = await fetch(`${BASE_URL}/get_user_own_auctions`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const data = await response.json();
+  return data;
+};
+
+export const getUserAuctionsThunk = () => async (dispatch, getState) => {
+  const accessToken = getState().auth.access_token;
+  const response = await fetch(`${BASE_URL}/get_user_auctions`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const data = await response.json();
+  return data;
+};
+
+export const getArchiveAuctionsThunk = () => async (dispatch, getState) => {
+  const accessToken = getState().auth.access_token;
+  const response = await fetch(`${BASE_URL}/archived_auctions`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  const data = await response.json();
+  return data;
+};
+
+// TODO not used yet
+export const deleteAuctionThunk = (auctionId) => async (dispatch, getState) => {
+  const accessToken = getState().auth.access_token;
+  const response = await fetch(`${BASE_URL}/delete_auction`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ id_auction: auctionId }),
   });
 
   const data = await response.json();
