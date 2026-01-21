@@ -7,6 +7,7 @@ import Ring from "@/components/icon/Ring";
 import RingInfo from "@/components/icon/RingInfo";
 import User from "@/components/icon/User";
 import Search from "@/components/icon/Search";
+import Trash from "@/components/icon/Trash"
 
 export const icons = {
 	add: <Add />,
@@ -15,12 +16,13 @@ export const icons = {
 	ring: <Ring />,
 	ringinfo: <RingInfo />,
 	user: <User />,
-	search: <Search />
+	search: <Search />,
+	trash: <Trash />
 };
 
-export default function Icon({ name, size = 32, color = "#fff", onClick = () => {} }: { name: keyof typeof icons; size?: number; color?: string; onClick?: () => void }) {
+export default function Icon({ name, size = 32, color = "#fff", onClick = () => {}, className="" }: { className?:string, name: keyof typeof icons; size?: number; color?: string; onClick?: () => void }) {
 	return (
-		<div onClick={onClick} className={`cursor-pointer`} style={{ color: color }}>
+		<div onClick={onClick} className={`cursor-pointer ` + className} style={{ color: color }}>
 			{React.cloneElement(icons[name], { size, color })}
 		</div>
 	);

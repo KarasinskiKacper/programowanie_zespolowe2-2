@@ -59,7 +59,7 @@ export default function HomePage() {
               </div>
               <div className="self-stretch flex flex-col justify-start items-start gap-2">
                 <div className="inline-flex justify-start items-start gap-4">
-                  <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter']">
+                  <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter'] gap-2">
                     Email:
                     <div className="justify-start text-black text-2xl font-normal font-['Inter']">
                       {newEmail}
@@ -72,8 +72,8 @@ export default function HomePage() {
                   /> */}
                 </div>
                 <div className="inline-flex justify-start items-start gap-4">
-                  <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter']">
-                    Nr tel:{" "}
+                  <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter'] gap-2">
+                    Nr tel:
                     <div className="justify-start text-black text-2xl font-normal font-['Inter']">
                       {newPhone}
                     </div>

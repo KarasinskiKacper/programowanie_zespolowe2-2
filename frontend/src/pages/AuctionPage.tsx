@@ -11,6 +11,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 
 
 import { getAuctionPhotoThunk, getAuctionDetailsThunk } from "@/store/thunks/AuctionsThunk";
+import { CategoryItem } from "@/components/CategoryItem";
 
 export default function AuctionPage() {
 	const dispatch = useAppDispatch();
@@ -20,7 +21,9 @@ export default function AuctionPage() {
 	const [selectedImageIndex, setSelectedImageIndex] = React.useState(0);
 
 	const [auctionData, setAuctionData] = useState(null);
-	  const [endDate, setEndDate] = useState<string | null>(null)
+	const [endDate, setEndDate] = useState<string | null>(null)
+
+	const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"] // TODO dostarczyć listę kategiorii
 
 	useEffect(() => {
 		(async () => {
@@ -113,21 +116,21 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 	};
 
 	return (
-		<div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">
+		<div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden ">
 			<div className="w-full max-w-[1400px] flex flex-col justify-start items-start gap-16 overflow-hidden">
-				<div className="self-stretch inline-flex justify-start items-center gap-8">
-					<div className="flex-1 p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
+				<div className="self-stretch inline-flex justify-start items-center gap-8 ">
+					<div className="self-stretch flex-1 p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
 						<div className="self-stretch justify-start text-black text-3xl font-bold font-['Inter']">{auctionData?.title}</div>
-						<div className="self-stretch flex flex-col justify-start items-start gap-8">
+						<div className="self-stretch h-full flex flex-col justify-start items-start gap-8">
 							<img
-								src={auctionData?.images[selectedImageIndex]}
-								className={`w-full h-full object-contain max-h-96`}
+								src={auctionData?.images[selectedImageIndex]?.length>3 ? auctionData?.images[selectedImageIndex] : "/no-image.png"}
+								className={`self-stretch w-full h-full object-contain`}
 							/>
-							<div className="self-stretch inline-flex justify-start items-center gap-4 overflow-hidden">
+							<div className="self-stretch inline-flex justify-start items-center gap-4">
 								{auctionData?.images.map((image: string, index: number) => (
 									<div key={index} className="w-32 h-32 bg-neutral-400">
 										<img
-											src={image}
+											src={image?.length>3 ? image : "/no-image.png"}
 											className={`w-full h-full object-cover ${index === selectedImageIndex ? "border-4 border-brand-primary" : ""}`}
 											onClick={() => setSelectedImageIndex(index)}
 										/>
@@ -184,6 +187,18 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 									<div className="justify-start text-black text-xl font-normal font-['Inter']">Koniec aukcji: </div>
 									<div className="justify-start text-black text-xl font-normal font-['Inter']">{auctionData?.endDate && format(parseISO(auctionData?.endDate), "dd.MM.yyyy HH:mm")}</div>
 								</div>
+							</div>
+						</div>
+						<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
+						<div className="flex-col self-stretch text-2xl font-semibold text-orange-600 gap-2">
+							Kategorie:
+							<div className="gap-4 flex-wrap">
+								{categoryItems.map(category => <CategoryItem 
+									label={category}
+									onClick={()=>{}}
+									selected={true}
+									selectable={false}
+								/>)}
 							</div>
 						</div>
 					</div>

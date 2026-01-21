@@ -6,6 +6,7 @@ import { getAllAuctionsThunk } from "@/store/thunks/AuctionsThunk";
 import { useCountdown } from "@/hooks/useCountdown";
 
 import formatCountdownPL from "@/utils/formatCountdownPL";
+import { CategoryItem } from "@/components/CategoryItem";
 
 type Product = {
   id: string;
@@ -44,16 +45,29 @@ export default function HomePage() {
       return rows;
     }, [])
     .map((row, rowIndex) => (
-      <div key={rowIndex} className="self-stretch inline-flex justify-start items-center gap-4">
+      <div key={rowIndex} className="self-stretch h-full inline-flex justify-start items-streach">
         {row.map((product: any) => (
           <AuctionCard key={product.id} product={product} />
         ))}
       </div>
     ));
+  
+  const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"] // TODO dostarczyć listę kategiorii ze state
+  const [selectedItems, setSelectedItems] = useState<Array<string>>([]) // TODO obsłużyć logikę listy
 
   return (
-    <div className="self-stretch py-16 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">
-      <div className="w-full max-w-[1400px] p-4 bg-zinc-100 flex flex-col justify-start items-start gap-8 overflow-hidden">
+    <div className="self-stretch py-16 flex-col justify-start items-center gap-8 overflow-hidden">
+      <div className="w-full max-w-[1400px] gap-4">
+        {categoryItems.map(category => <CategoryItem 
+          label={category}
+          onClick={()=>{
+            if(selectedItems.includes(category)) setSelectedItems(selectedItems.filter(item => item != category));
+            else setSelectedItems([...selectedItems, category])
+          }}
+          selectedItems={selectedItems}
+        />)}
+      </div>
+      <div className="w-full max-w-[1400px] bg-zinc-100 flex flex-col justify-start items-start overflow-hidden p-2">
         {productCards}
       </div>
     </div>

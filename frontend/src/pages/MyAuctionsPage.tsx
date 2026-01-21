@@ -175,7 +175,7 @@ export default function HomePage() {
       return rows;
     }, [])
     ?.map((row, rowIndex) => (
-      <div key={rowIndex} className="self-stretch inline-flex justify-start items-center gap-4">
+      <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
           <AuctionCard key={product.id} product={product} />
         ))}
@@ -189,7 +189,7 @@ export default function HomePage() {
       return rows;
     }, [])
     ?.map((row, rowIndex) => (
-      <div key={rowIndex} className="self-stretch inline-flex justify-start items-center gap-4">
+      <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
           <AuctionCard key={product.id} product={product} />
         ))}
@@ -203,7 +203,7 @@ export default function HomePage() {
       return rows;
     }, [])
     ?.map((row, rowIndex) => (
-      <div key={rowIndex} className="self-stretch inline-flex justify-start items-center gap-4">
+      <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
           <AuctionCard key={product.id} product={product} />
         ))}
@@ -212,24 +212,48 @@ export default function HomePage() {
 
   return (
     <div className="self-stretch py-16 inline-flex flex-col justify-start items-center gap-16 overflow-hidden">
-      <div className="flex-col gap-4">
-        <div className="text-4xl text-brand-primary font-bold">Moje aukcje</div>
-        <div className="w-full max-w-[1400px] p-4 bg-zinc-100 flex flex-col justify-start items-start gap-8 overflow-hidden">
-          {productCards1}
-        </div>
-      </div>
-      <div className="flex-col gap-4">
-        <div className="text-4xl text-brand-primary font-bold">Aukcje w których biorę udział</div>
-        <div className="w-full max-w-[1400px] p-4 bg-zinc-100 flex flex-col justify-start items-start gap-8 overflow-hidden">
-          {productCards2}
-        </div>
-      </div>
-      <div className="flex-col gap-4">
-        <div className="text-4xl text-brand-primary font-bold">Archiwum</div>
-        <div className="w-full max-w-[1400px] p-4 bg-zinc-100 flex flex-col justify-start items-start gap-8 overflow-hidden">
-          {productCards3}
-        </div>
-      </div>
+      <Products
+        label="Moje aukcje"
+        emptyLabel="Obecnie nie prowadzisz żadnych aukcji"
+        productsCards={productCards1}
+      />
+      <Products
+        label="Aukcje w których biorę udział"
+        emptyLabel="Obecnie nie bierzesz udziałuw żadnych aukcjach"
+        productsCards={productCards2}
+      />
+      <Products
+        label="Wygrane aukcje"
+        emptyLabel="Nie wygrałeś jeszcze żandej aukcji"
+        productsCards={productCards3}
+      />
+      <Products
+        label="Archiwum"
+        emptyLabel="Nie brałeś udziału w żadnych aukcjach, które zostały zakończone"
+        productsCards={productCards3}
+      />
     </div>
   );
+}
+
+function Products({label, emptyLabel, productsCards}:{label: string, emptyLabel: string, productsCards: any}) {
+  const [showAll, setShowAll] = useState(false);
+  return (
+    <div className="flex-col max-w-[1400px] w-full gap-4 ">
+      <div className="text-4xl text-brand-primary font-bold ">{label}</div>
+      {productsCards.length
+        ? <div className="w-full max-w-[1400px] p-4 bg-zinc-100 flex flex-col justify-start items-start overflow-hidden">
+          {showAll ? productsCards : productsCards.slice(0, 1)}
+        </div>
+        : emptyLabel
+      }
+      {productsCards.length>1 && <div 
+          className="text-brand-primary underline flex flex-1 justify-center cursor-pointer" 
+          onClick={()=>{setShowAll(!showAll)}}
+        >
+          {!showAll ? "Pokaż więcej" : "Pokaż mniej"}
+        </div>
+      }
+    </div>
+  )
 }

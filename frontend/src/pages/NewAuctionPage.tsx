@@ -8,6 +8,8 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
 import { createNewAuctionThunk } from "@/store/thunks/AuctionsThunk";
 import { useRouter } from "next/navigation";
+import Icon from "@/components/icon/Icon";
+import { CategoryItem } from "@/components/CategoryItem";
 
 const toDatetimeLocal = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -84,33 +86,49 @@ export default function NewAuctionPage() {
     e.target.value = "";
   };
 
+  const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"] // TODO dostarczyć listę kategiorii ze state
+  const [selectedItems, setSelectedItems] = useState<Array<string>>([]) // TODO obsłużyć logikę listy
+
+  const parseToMarkdown = (markdown) => {
+    return markdown.replace(/(?<!  )\n/g, '  \n');
+  }
+
   return (
     <div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">
       <div className="w-full max-w-[1400px] flex flex-col justify-start items-start gap-16 overflow-hidden">
         <div className="self-stretch inline-flex justify-start items-center gap-8">
-          <div className="flex-1 p-8 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
+          <div className="flex-1 p-8 self-stretch outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-start gap-4">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="self-stretch justify-start text-black text-3xl font-bold font-['Inter']"
             />
-            <div className="self-stretch flex flex-col justify-start items-start gap-8">
-              <img
-                src={images[selectedImageIndex]?.previewUrl}
-                className={`w-full h-full object-contain max-h-96`}
-              />
-              <div className="self-stretch inline-flex justify-start items-center gap-4 overflow-hidden">
+            <div className="self-stretch h-full flex flex-col justify-start items-start gap-8">
+              <div className="w-full h-full relative">
+                <img
+                  src={images.length ? images[selectedImageIndex]?.previewUrl : "/no-image.png"}
+                  className={`w-full h-full object-contain max-h-96`}
+                />
+                {!!images.length && <div className="absolute right-0 bottom-0 p-4 cursor-pointer" onClick={()=>{
+                    setImages(prev => prev.filter((img, index)=>index!=selectedImageIndex))
+                    if(selectedImageIndex) setSelectedImageIndex(selectedImageIndex-1);
+                  }}>
+                  <Icon name="trash" color="#DD0000" size={48}></Icon>
+                </div>}
+              </div>
+              <div className="self-stretch inline-flex justify-start items-center gap-4">
                 {images.map((image: ImageItem, index: number) => (
-                  <div key={index} className="w-32 h-32 bg-neutral-400">
+                  <div key={index} className={`cursor-pointer w-32 h-32 bg-neutral-400 outline outline-brand-primary hover:outline-4 ${index === selectedImageIndex ? "outline-4" : ""}`}>
                     <img
                       src={image.previewUrl}
-                      className={`w-full h-full object-cover ${index === selectedImageIndex ? "border-4 border-brand-primary" : ""}`}
+                      className={`w-full h-full object-cover`}
                       onClick={() => setSelectedImageIndex(index)}
                     />
                   </div>
                 ))}
-                <label className="cursor-pointer w-32 h-32 bg-neutral-400">
+                <label className="cursor-pointer w-32 h-32 relative hover:outline-4 outline outline-2 outline-brand-primary">
                   <input type="file" className="hidden" onChange={onAddImage} />
+                  <div className="absolute bottom-1 w-32 h-32 items-center justify-center text-8xl font-center text-brand-primary select-none">+</div>
                 </label>
               </div>
             </div>
@@ -159,6 +177,19 @@ export default function NewAuctionPage() {
                   setEndDate(e.target.value >= endDateMin ? e.target.value : endDateMin)
                 }
               />
+            </div>
+            <div className="flex-col self-stretch text-2xl font-semibold text-orange-600 gap-2">
+              Kategorie:
+              <div className="gap-4 flex-wrap">
+                {categoryItems.map(category => <CategoryItem 
+                  label={category}
+                  onClick={()=>{
+                    if(selectedItems.includes(category)) setSelectedItems(selectedItems.filter(item => item != category));
+                    else setSelectedItems([...selectedItems, category])
+                  }}
+                  selectedItems={selectedItems}
+                />)}
+              </div>
             </div>
             <div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
             <Button
@@ -214,7 +245,7 @@ export default function NewAuctionPage() {
               placeholder="Opis produktu..."
             />
             <div className="flex-1 p-2 markdown flex-col">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{parseToMarkdown(description)}</ReactMarkdown>
             </div>
           </div>
         </div>
