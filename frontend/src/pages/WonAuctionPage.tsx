@@ -12,6 +12,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 
 import { getAuctionPhotoThunk, getAuctionDetailsThunk } from "@/store/thunks/AuctionsThunk";
 import { CategoryItem } from "@/components/CategoryItem";
+import { Avatar } from "@/components/Avatar";
 
 export default function WonAuctionPage() { // TODO dodać logikę
 	const dispatch = useAppDispatch();
@@ -116,7 +117,7 @@ export default function WonAuctionPage() { // TODO dodać logikę
 // 	};
 
 	return (
-		<div className="self-stretch py-8 inline-flex flex-col gap-2.5 overflow-hidden ">
+		<div className="self-stretch py-8 inline-flex flex-col gap-2.5 overflow-hidden items-center">
 			<div className="w-full max-w-[1400px] flex flex-col justify-start items-start gap-16 overflow-hidden">
 				<div className="flex-col gap-4 w-full">
 					<div className="justify-start text-orange-600 text-5xl font-bold font-['Inter']">Gratulacje, wygrałeś tą akucję!</div>
@@ -153,7 +154,7 @@ export default function WonAuctionPage() { // TODO dodać logikę
 							<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
 							<div className="flex flex-col justify-start items-start gap-4">
 								<div className="inline-flex justify-start items-center gap-2">
-									<div className="w-8 h-8 relative bg-zinc-400 rounded-[64px]" />
+									<Avatar size={32} name={auctionData?.owner?.name.split(" ")[0]} surname={auctionData?.owner?.name.split(" ")[1]}/>
 									<div className="justify-start text-black text-xl font-bold font-['Inter']">
 										{auctionData?.owner?.name}
 									</div>

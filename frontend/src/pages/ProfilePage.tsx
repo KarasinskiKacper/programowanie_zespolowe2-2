@@ -11,6 +11,7 @@ import { selectAuth, formatAuthDate } from "@/store/slices/authSelector";
 
 import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
 import { changePasswordThunk } from "@/store/thunks/auth/ChangePasswordThunk";
+import { Avatar } from "@/components/Avatar";
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
@@ -49,12 +50,12 @@ export default function HomePage() {
     <div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">
       <div className="w-full max-w-[1400px] inline-flex justify-center items-start gap-16">
         <div className="flex-1 p-16 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-center gap-8">
-          <div className="w-64 h-64 relative bg-zinc-400 rounded-[999px]" />
+          <Avatar size={64*4} />
           <div className="flex flex-col justify-center items-start gap-8">
             <div className="self-stretch flex flex-col justify-start items-start gap-4">
               <div className="inline-flex justify-start items-center gap-8">
                 <div className="justify-start text-black text-6xl font-bold font-['Inter']">
-                  Daniel Nowacki
+                  {first_name} {last_name}
                 </div>
               </div>
               <div className="self-stretch flex flex-col justify-start items-start gap-2">

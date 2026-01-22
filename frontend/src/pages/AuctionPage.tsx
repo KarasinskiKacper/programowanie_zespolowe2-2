@@ -12,6 +12,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 
 import { getAuctionPhotoThunk, getAuctionDetailsThunk } from "@/store/thunks/AuctionsThunk";
 import { CategoryItem } from "@/components/CategoryItem";
+import { Avatar } from "@/components/Avatar";
 
 export default function AuctionPage() {
 	const dispatch = useAppDispatch();
@@ -28,7 +29,7 @@ export default function AuctionPage() {
 	useEffect(() => {
 		(async () => {
 			const auctionDetails = await dispatch(getAuctionDetailsThunk(auctionId));
-			console.log(auctionDetails);
+			
 
 			const imagesUrl = [auctionDetails.main_photo, ...auctionDetails.photos];
 			const images = []
@@ -45,9 +46,9 @@ export default function AuctionPage() {
 				price: Math.round(auctionDetails.current_price),
 				time: auctionDetails.end_date,
 				owner: {
-					name: auctionDetails.owner_name,
+					name: auctionDetails.seller_name,
 					avatarUrl: "", // TODO: add avatar url
-					id: auctionDetails.id_owner,
+					id: auctionDetails.seller_owner,
 				},
 				winner: {
 					name: auctionDetails.winner_name,
@@ -60,7 +61,8 @@ export default function AuctionPage() {
 				description: auctionDetails.description.trim(),
 				images: images,
 			}
-			console.log(data.images);
+			console.log(auctionDetails);
+			console.log(data);
 			setEndDate(data.endDate)
 			setAuctionData(data);
 		})();
@@ -128,10 +130,10 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 							/>
 							<div className="self-stretch inline-flex justify-start items-center gap-4">
 								{auctionData?.images.map((image: string, index: number) => (
-									<div key={index} className="w-32 h-32 bg-neutral-400">
+									<div key={index} className="w-32 h-32">
 										<img
 											src={image?.length>3 ? image : "/no-image.png"}
-											className={`w-full h-full object-cover ${index === selectedImageIndex ? "border-4 border-brand-primary" : ""}`}
+											className={`w-full h-full object-cover  ${index === selectedImageIndex ? "border-4 border-brand-primary" : ""}`}
 											onClick={() => setSelectedImageIndex(index)}
 										/>
 									</div>
@@ -151,25 +153,29 @@ Lenovo od lat słynie z niezawodnych laptopów, które oferują doskonały stosu
 									<div className="justify-start text-brand-primary text-8xl font-bold font-['Inter']">{auctionData?.price}</div>
 									<div className="justify-start text-brand-primary text-6xl font-bold font-['Inter']">zł</div>
 								</div>
-								<div className="inline-flex justify-start items-center gap-2">
-									<div className="w-16 h-16 relative bg-zinc-400 rounded-[64px]" />
-									<div className="inline-flex flex-col justify-center items-start gap-1">
-										<div className="justify-start text-black text-xl font-bold font-['Inter']">
-											{auctionData?.winner?.name}
+
+								{auctionData?.winner?.name
+									? <div className="inline-flex justify-start items-center gap-2">
+										<Avatar size={16*4} name={auctionData?.winner?.name?.split(" ")[0]} surname={auctionData?.winner?.name?.split(" ")[1]}/>
+										<div className="inline-flex flex-col justify-center items-start gap-1">
+											<div className="justify-start text-black text-xl font-bold font-['Inter']">
+												{auctionData?.winner?.name}
+											</div>
+											<div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">{auctionData?.winner?.time && format(parseISO(auctionData?.winner?.time), "dd.MM.yyyy HH:mm")}</div>
 										</div>
-										<div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">{auctionData?.winner?.time && format(parseISO(auctionData?.winner?.time), "dd.MM.yyyy HH:mm")}</div>
 									</div>
-								</div>
+									: <div className="text-2xl text-brand-primary font-bold">Cena startowa</div>
+								}
 							</div>
 							<div className="self-stretch inline-flex justify-start items-start gap-4">
-                                <input type="number" className="flex-1 h-12 border-2 border-orange-600 px-4 text-2xl" />
+                                <input type="number" className="flex-2 h-12 border-2 border-orange-600 px-4 text-2xl w-1" />
 								<Button label="Przebij" onClick={() => {}} size="small" />
 							</div>
 						</div>
 						<div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
 						<div className="flex flex-col justify-start items-start gap-4">
 							<div className="inline-flex justify-start items-center gap-2">
-								<div className="w-8 h-8 relative bg-zinc-400 rounded-[64px]" />
+								<Avatar size={32}  name={auctionData?.owner?.name?.split(" ")[0]} surname={auctionData?.owner?.name?.split(" ")[1]}/>
 								<div className="justify-start text-black text-xl font-bold font-['Inter']">
 									{auctionData?.owner?.name}
 								</div>

@@ -27,7 +27,7 @@ export const AuctionCard = ({
   useEffect(() => {
     (async () => {
       const photoData = await dispatch(getAuctionPhotoThunk(product.imageUrl));
-      setImageUrl(photoData.length>3 ? photoData :  "/no-image.png");
+      setImageUrl(photoData);
     })();
   }, []);
 
@@ -39,7 +39,7 @@ export const AuctionCard = ({
           router.push(`/aukcja/${product.id}`);
         }}
       >
-        <img className="self-stretch flex aspect-video w-full object-contain" src={imageAPIUrl} />
+        <img className="self-stretch flex aspect-video w-full object-contain" src={imageAPIUrl.length>3 ? imageAPIUrl :  "/no-image.png"} />
         <div className="self-stretch flex flex-col justify-start items-start gap-2">
           <div className="self-stretch flex flex-col justify-start items-start gap-2.5">
             <div className="self-stretch flex flex-col justify-start items-start gap-2.5">

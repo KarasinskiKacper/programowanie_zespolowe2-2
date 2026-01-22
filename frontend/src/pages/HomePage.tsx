@@ -59,6 +59,7 @@ export default function HomePage() {
     <div className="self-stretch py-16 flex-col justify-start items-center gap-8 overflow-hidden">
       <div className="w-full max-w-[1400px] gap-4">
         {categoryItems.map(category => <CategoryItem 
+          key={category}
           label={category}
           onClick={()=>{
             if(selectedItems.includes(category)) setSelectedItems(selectedItems.filter(item => item != category));

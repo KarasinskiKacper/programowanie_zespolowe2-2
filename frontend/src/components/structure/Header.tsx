@@ -5,6 +5,7 @@ import { icons } from "../icon/Icon";
 import { useRouter } from "next/dist/client/components/navigation";
 import { handleAutoLogin } from "@/components/AutoLoginHandler";
 import { useState } from "react";
+import { Avatar } from "../Avatar";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -22,7 +23,7 @@ export default function Header() {
   handleAutoLogin();
 
   return (
-    <div className="flex-1 px-8 bg-brand-primary justify-start items-start fixed w-full">
+    <div className="flex-1 px-8 bg-brand-primary justify-start items-start fixed w-full z-10">
       <div
         className="pr-8 py-8 inline-flex flex-col justify-start items-start gap-2.5 cursor-pointer"
         onClick={() => {
@@ -55,12 +56,12 @@ export default function Header() {
             onClick={() => {
               router.push("/profil");
             }}
-            className="self-stretch justify-start items-center px-2 gap-2 pt-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)]"
+            className="self-stretch justify-start items-center px-2 gap-4 pt-2 cursor-pointer hover:bg-[rgba(255,255,255,0.1)]"
           >
             <div className="justify-start text-white text-2xl font-bold font-['Inter'] underline select-none">
               {first_name} {last_name}
             </div>
-            <Icon name="user" size={32} />
+            <Avatar size={48}/>
           </div>
         </div>
       )}
