@@ -219,13 +219,8 @@ export default function HomePage() {
       />
       <Products
         label="Aukcje w których biorę udział"
-        emptyLabel="Obecnie nie bierzesz udziałuw żadnych aukcjach"
+        emptyLabel="Obecnie nie bierzesz udziału w żadnych aukcjach"
         productsCards={productCards2}
-      />
-      <Products
-        label="Wygrane aukcje"
-        emptyLabel="Nie wygrałeś jeszcze żandej aukcji"
-        productsCards={productCards3}
       />
       <Products
         label="Archiwum"

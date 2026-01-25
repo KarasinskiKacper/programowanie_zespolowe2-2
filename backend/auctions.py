@@ -1,4 +1,4 @@
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, leave_room, emit
 from threading import Lock
 from collections import defaultdict
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -18,6 +18,28 @@ socketio = SocketIO(cors_allowed_origins="*")
 _auction_locks = defaultdict(Lock)
 
 scheduler = None
+
+@socketio.on('join')
+def handle_join(data):
+    auction = data['auction']
+    if not auction:
+        emit('error', {'message': 'Missing auction to join', 'code': 1})
+        return
+    
+    join_room(auction)
+
+    emit('user_joined', {'auction': auction})
+
+@socketio.on('leave')
+def handle_leave(data):
+    auction = data['auction']
+    if not auction:
+        emit('error', {'message': 'Missing auction to leave', 'code': 2})
+        return
+    
+    leave_room(auction)
+
+    emit('user_left', {'auction': auction})
 
 def get_auction_lock(auction_id):
     return _auction_locks[auction_id]

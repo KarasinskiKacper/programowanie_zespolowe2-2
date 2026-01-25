@@ -4,8 +4,10 @@ import Icon from "../icon/Icon";
 import { icons } from "../icon/Icon";
 import { useRouter } from "next/dist/client/components/navigation";
 import { handleAutoLogin } from "@/components/AutoLoginHandler";
-import { useState } from "react";
 import { Avatar } from "../Avatar";
+import { useEffect, useState } from "react";
+
+import { socket } from "@/socket";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -21,6 +23,22 @@ export default function Header() {
   } = useAppSelector(selectAuth);
 
   handleAutoLogin();
+
+  const onAuctionUpdated = () => {};
+  const onAuctionClosed = () => {};
+
+  useEffect(() => {
+    if (isAuthenticated) {
+    }
+
+    socket.on("auction_updated", onAuctionUpdated);
+    socket.on("auction_closed", onAuctionClosed);
+
+    return () => {
+      socket.off("auction_updated");
+      socket.off("auction_closed");
+    };
+  }, [isAuthenticated]);
 
   return (
     <div className="flex-1 px-8 bg-brand-primary justify-start items-start fixed w-full z-10">
@@ -61,7 +79,7 @@ export default function Header() {
             <div className="justify-start text-white text-2xl font-bold font-['Inter'] underline select-none">
               {first_name} {last_name}
             </div>
-            <Avatar size={48}/>
+            <Avatar size={48} />
           </div>
         </div>
       )}
