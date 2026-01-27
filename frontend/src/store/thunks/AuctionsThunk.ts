@@ -113,7 +113,6 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
   images[0].is_main = true;
 
   const accessToken = getState().auth.access_token;
-  console.log("auctiobndata", auctionData);
 
   const response = await fetch(`${BASE_URL}/create_auction`, {
     method: "POST",

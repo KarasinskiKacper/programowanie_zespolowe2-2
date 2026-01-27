@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction, createSelector } from "@reduxjs/toolkit";
+import { selectSelectedCategoryId, selectCategories } from "@/store/slices/categoriesSlice";
 
 export type Auction = {
   categories: string[];
@@ -65,5 +66,20 @@ export const selectUnsoldFilteredAuctionsBySearch = createSelector(
     const q = search.trim().toLowerCase();
     if (!q) return items;
     return items.filter((a) => (a.title ?? "").toLowerCase().includes(q));
+  },
+);
+
+export const selectUnsoldFilteredAuctionsBySearchAndCategory = createSelector(
+  [selectUnsoldFilteredAuctionsBySearch, selectSelectedCategoryId, selectCategories],
+  (items, selectedCategoryId, categories) => {
+    if (selectedCategoryId == null) return items;
+
+    const selectedCategoryName = categories.find(
+      (c) => c.id_category === selectedCategoryId,
+    )?.category_name;
+
+    if (!selectedCategoryName) return items;
+
+    return items.filter((a) => (a.categories ?? []).includes(selectedCategoryName));
   },
 );

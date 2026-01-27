@@ -7,14 +7,7 @@ import { useCountdown } from "@/hooks/useCountdown";
 
 import formatCountdownPL from "@/utils/formatCountdownPL";
 import { CategoryItem } from "@/components/CategoryItem";
-import {
-  setAuctions,
-  selectAllAuctions,
-  selectUnsoldAuctions,
-  selectSearch,
-  selectFilteredAuctionsBySearch,
-  selectUnsoldFilteredAuctionsBySearch,
-} from "@/store/slices/auctionSlice";
+import { selectUnsoldFilteredAuctionsBySearchAndCategory } from "@/store/slices/auctionSlice";
 
 import { getAuctionCategoriesThunk } from "@/store/thunks/AuctionsThunk";
 import {
@@ -28,7 +21,7 @@ import { setCategories } from "@/store/slices/categoriesSlice";
 export default function HomePage() {
   const dispatch = useAppDispatch();
 
-  const products = useAppSelector(selectUnsoldFilteredAuctionsBySearch);
+  const products = useAppSelector(selectUnsoldFilteredAuctionsBySearchAndCategory);
   const categoryItems = useAppSelector(selectCategories);
   const selectedItems = useAppSelector(selectSelectedCategory);
   console.log(selectedItems);
