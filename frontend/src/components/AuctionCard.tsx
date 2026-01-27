@@ -11,22 +11,22 @@ export const AuctionCard = ({
   product,
 }: {
   product: {
-    id: string;
-    name: string;
-    price: number;
-    imageUrl: string;
-    endDate: string;
+    id_auction: number;
+    title: string;
+    current_price: number;
+    main_photo: string;
+    end_date: string;
     slug: string;
   };
 }) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const timeLeft = useCountdown(product.endDate);
+  const timeLeft = useCountdown(product.end_date);
   const [imageAPIUrl, setImageUrl] = useState("");
 
   useEffect(() => {
     (async () => {
-      const photoData = await dispatch(getAuctionPhotoThunk(product.imageUrl));
+      const photoData = await dispatch(getAuctionPhotoThunk(product.main_photo));
       setImageUrl(photoData);
     })();
   }, []);
@@ -36,16 +36,19 @@ export const AuctionCard = ({
       <div
         className="w-full p-4 bg-white inline-flex flex-col justify-start items-start gap-6 overflow-hidden cursor-pointer"
         onClick={() => {
-          router.push(`/aukcja/${product.id}`);
+          router.push(`/aukcja/${String(product.id_auction)}`);
         }}
       >
-        <img className="self-stretch flex aspect-video w-full object-contain" src={imageAPIUrl.length>3 ? imageAPIUrl :  "/no-image.png"} />
+        <img
+          className="self-stretch flex aspect-video w-full object-contain"
+          src={imageAPIUrl.length > 3 ? imageAPIUrl : "/no-image.png"}
+        />
         <div className="self-stretch flex flex-col justify-start items-start gap-2">
           <div className="self-stretch flex flex-col justify-start items-start gap-2.5">
             <div className="self-stretch flex flex-col justify-start items-start gap-2.5">
               <div className="inline-flex justify-center items-end gap-1">
                 <div className="justify-start text-brand-primary text-4xl font-bold font-['Inter']">
-                  {product.price}
+                  {Math.round(product.current_price)}
                 </div>
                 <div className="justify-start text-brand-primary text-2xl font-bold font-['Inter']">
                   zł
@@ -53,7 +56,7 @@ export const AuctionCard = ({
               </div>
               <div className="self-stretch inline-flex justify-center items-center gap-2.5">
                 <div className="flex-1 justify-start text-black text-xl font-normal font-['Inter']">
-                  {product.name}
+                  {product.title}
                 </div>
               </div>
             </div>

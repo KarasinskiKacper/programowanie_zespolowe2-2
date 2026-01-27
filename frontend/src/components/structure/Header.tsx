@@ -7,6 +7,15 @@ import { handleAutoLogin } from "@/components/AutoLoginHandler";
 import { Avatar } from "../Avatar";
 import { useEffect, useState } from "react";
 
+import { getAllAuctionsThunk } from "@/store/thunks/AuctionsThunk";
+import {
+  setAuctions,
+  selectAllAuctions,
+  selectUnsoldAuctions,
+  setSearch,
+  selectSearch,
+} from "@/store/slices/auctionSlice";
+
 import { socket } from "@/socket";
 
 export default function Header() {
@@ -21,6 +30,7 @@ export default function Header() {
     last_name,
     phone_number,
   } = useAppSelector(selectAuth);
+  const search = useAppSelector(selectSearch);
 
   handleAutoLogin();
 
@@ -40,6 +50,15 @@ export default function Header() {
     };
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    const load = async () => {
+      const data = await dispatch<any>(getAllAuctionsThunk());
+      dispatch(setAuctions(data));
+    };
+
+    load();
+  }, [dispatch]);
+
   return (
     <div className="flex-1 px-8 bg-brand-primary justify-start items-start fixed w-full z-10">
       <div
@@ -56,6 +75,8 @@ export default function Header() {
             <input
               className="flex-1 h-full outline-none border-none text-2xl font-bold font-['Inter']"
               placeholder="Szukaj..."
+              value={search}
+              onChange={(e) => dispatch(setSearch(e.target.value))}
             />
             <div className="px-4 py-3 flex justify-start items-center gap-2.5">
               <Icon name="search" size={32} color="#f00" />
