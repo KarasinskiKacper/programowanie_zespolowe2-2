@@ -3,6 +3,7 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 import authReducer from "./slices/authSlice.ts";
 import auctionsReducer from "./slices/auctionSlice";
+import userAuctionsReducer from "./slices/userAuctionSlice";
 // import usersRepoReducer from "./slices/usersRepoSlice";
 
 export const store = configureStore({
@@ -10,6 +11,7 @@ export const store = configureStore({
     auth: authReducer,
     // usersRepo: usersRepoReducer,
     auctions: auctionsReducer,
+    userAuctions: userAuctionsReducer,
   },
 });
 
