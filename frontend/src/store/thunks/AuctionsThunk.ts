@@ -1,3 +1,5 @@
+import { ca } from "date-fns/locale";
+
 const BASE_URL = `${process.env.BASE_BACKEND_API_URL}/api`;
 
 export const getAllAuctionsThunk = () => async (dispatch, getState) => {
@@ -113,6 +115,7 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
   images[0].is_main = true;
 
   const accessToken = getState().auth.access_token;
+  console.log("createNewAuctionThunk categories:", auctionData.categories);
 
   const response = await fetch(`${BASE_URL}/create_auction`, {
     method: "POST",
@@ -120,12 +123,14 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
+
     body: JSON.stringify({
       title: auctionData.title,
       description: auctionData.description,
       start_price: Number(auctionData.startPrice),
       start_date: auctionData.startDate,
       end_date: auctionData.endDate,
+      categories: auctionData.categories,
 
       photos: images,
     }),

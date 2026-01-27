@@ -7,7 +7,7 @@ import { handleAutoLogin } from "@/components/AutoLoginHandler";
 import { Avatar } from "../Avatar";
 import { useEffect, useState } from "react";
 
-import { getAllAuctionsThunk } from "@/store/thunks/AuctionsThunk";
+import { getAllAuctionsThunk, getAuctionCategoriesThunk } from "@/store/thunks/AuctionsThunk";
 import {
   setAuctions,
   selectAllAuctions,
@@ -18,7 +18,7 @@ import {
 
 import { socket } from "@/socket";
 import { usePathname } from "next/navigation";
-import { setSelectedCategoryId } from "@/store/slices/categoriesSlice";
+import { setCategories, setSelectedCategoryId } from "@/store/slices/categoriesSlice";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -42,9 +42,16 @@ export default function Header() {
   const onAuctionClosed = () => {};
 
   useEffect(() => {
-    dispatch(setSearch("")); // reset search w auctions [file:48]
-    dispatch(setSelectedCategoryId(null)); // reset kategorii [file:47]
+    dispatch(setSearch(""));
   }, [pathname, dispatch]);
+
+  useEffect(() => {
+    const load = async () => {
+      const categories = await dispatch<any>(getAuctionCategoriesThunk());
+      dispatch(setCategories(categories));
+    };
+    load();
+  }, [dispatch]);
 
   useEffect(() => {
     if (isAuthenticated) {

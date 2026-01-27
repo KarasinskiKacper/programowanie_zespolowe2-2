@@ -37,7 +37,6 @@ export default function Footer() {
                   return (
                     <FooterLink
                       key={category.id_category}
-                      href={`/`}
                       label={category.category_name}
                       onClick={() => {
                         dispatch(
@@ -47,6 +46,7 @@ export default function Footer() {
                               : category.id_category,
                           ),
                         );
+                        router.push("/");
                       }}
                     />
                   );
@@ -58,7 +58,6 @@ export default function Footer() {
                   return (
                     <FooterLink
                       key={category.id_category}
-                      href={`/`}
                       label={category.category_name}
                       onClick={() => {
                         dispatch(
@@ -68,6 +67,7 @@ export default function Footer() {
                               : category.id_category,
                           ),
                         );
+                        router.push("/");
                       }}
                     />
                   );
@@ -122,8 +122,7 @@ const FooterLink = ({
   onClick;
 }) => {
   return (
-    <Link
-      href={href}
+    <p
       className={
         "justify-start text-white/80 text-2xl font-bold font-['Inter'] underline cursor-pointer " +
         className
@@ -131,7 +130,7 @@ const FooterLink = ({
       onClick={onClick}
     >
       {label}
-    </Link>
+    </p>
   );
 };
 
