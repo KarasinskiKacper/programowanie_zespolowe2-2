@@ -1,0 +1,16 @@
+from flask import Blueprint, jsonify
+from db_objects import Categories
+
+
+bp = Blueprint('categories', __name__, url_prefix='/api')
+
+@bp.route('/get_all_categories', methods=['GET'])
+def get_all_categories():
+    categories = Categories.query.all()
+    results = []
+    for category in categories:
+        results.append({
+            "id_category": category.id_category,
+            "category_name": category.category_name
+        })
+    return jsonify(results), 200
