@@ -17,11 +17,17 @@ export const AuctionCard = ({
     main_photo: string;
     end_date: string;
     slug: string;
+    overtime: number | null;
   };
 }) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const timeLeft = useCountdown(product.end_date);
+
+  const end = new Date(product.end_date);
+  const overtime2 = product.overtime ? product.overtime : 0;
+  const realEnd = new Date(end.getTime() + overtime2 * 1000).toISOString();
+  const timeLeft = useCountdown(realEnd);
+
   const [imageAPIUrl, setImageUrl] = useState("");
 
   useEffect(() => {

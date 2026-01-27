@@ -25,7 +25,7 @@ export default function HomePage() {
   const categoryItems = useAppSelector(selectCategories);
   const selectedItems = useAppSelector(selectSelectedCategory);
   const selectedCategoryId = useAppSelector(selectSelectedCategoryId);
-  console.log(selectedItems);
+  console.log(products);
 
   useEffect(() => {
     const load = async () => {
