@@ -17,9 +17,13 @@ import {
 } from "@/store/slices/auctionSlice";
 
 import { socket } from "@/socket";
+import { usePathname } from "next/navigation";
+import { setSelectedCategoryId } from "@/store/slices/categoriesSlice";
 
 export default function Header() {
   const dispatch = useAppDispatch();
+  const pathname = usePathname();
+
   const router = useRouter();
   const {
     isAuthenticated,
@@ -36,6 +40,11 @@ export default function Header() {
 
   const onAuctionUpdated = () => {};
   const onAuctionClosed = () => {};
+
+  useEffect(() => {
+    dispatch(setSearch("")); // reset search w auctions [file:48]
+    dispatch(setSelectedCategoryId(null)); // reset kategorii [file:47]
+  }, [pathname, dispatch]);
 
   useEffect(() => {
     if (isAuthenticated) {

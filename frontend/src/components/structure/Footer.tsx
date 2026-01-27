@@ -5,10 +5,19 @@ import { icons } from "../icon/Icon";
 import { useRouter } from "next/dist/client/components/navigation";
 import { handleAutoLogin } from "@/components/AutoLoginHandler";
 import Link from "next/link";
+import {
+  selectCategories,
+  selectSelectedCategoryId,
+  setSelectedCategoryId,
+} from "@/store/slices/categoriesSlice";
 
 export default function Footer() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  const categoryItems = useAppSelector(selectCategories);
+  const selectedCategoryId = useAppSelector(selectSelectedCategoryId);
+  console.log(categoryItems);
 
   return (
     <div className="self-stretch p-16 bg-orange-600 inline-flex justify-center items-start gap-80 overflow-hidden">
@@ -23,18 +32,46 @@ export default function Footer() {
           </div>
           <div className="self-stretch inline-flex justify-between items-start">
             <div className="inline-flex flex-col justify-start items-start gap-2">
-              <FooterLink href="/" label="RTV/AGD" />
-              <FooterLink href="/" label="Elektronika" />
-              <FooterLink href="/" label="Dom" />
-              <FooterLink href="/" label="Auto" />
-              <FooterLink href="/" label="Dzieci" />
+              {categoryItems.map((category, index) => {
+                if (index % 2 == 0)
+                  return (
+                    <FooterLink
+                      key={category.id_category}
+                      href={`/`}
+                      label={category.category_name}
+                      onClick={() => {
+                        dispatch(
+                          setSelectedCategoryId(
+                            selectedCategoryId === category.id_category
+                              ? null
+                              : category.id_category,
+                          ),
+                        );
+                      }}
+                    />
+                  );
+              })}
             </div>
             <div className="inline-flex flex-col justify-start items-start gap-2">
-              <FooterLink href="/" label="RTV/AGD" />
-              <FooterLink href="/" label="Elektronika" />
-              <FooterLink href="/" label="Dom" />
-              <FooterLink href="/" label="Auto" />
-              <FooterLink href="/" label="Dzieci" />
+              {categoryItems.map((category, index) => {
+                if ((index + 1) % 2 == 0)
+                  return (
+                    <FooterLink
+                      key={category.id_category}
+                      href={`/`}
+                      label={category.category_name}
+                      onClick={() => {
+                        dispatch(
+                          setSelectedCategoryId(
+                            selectedCategoryId === category.id_category
+                              ? null
+                              : category.id_category,
+                          ),
+                        );
+                      }}
+                    />
+                  );
+              })}
             </div>
           </div>
         </div>
@@ -77,10 +114,12 @@ const FooterLink = ({
   href,
   className = "",
   label,
+  onClick,
 }: {
   href: string;
   className?: string;
   label: string;
+  onClick;
 }) => {
   return (
     <Link
@@ -89,6 +128,7 @@ const FooterLink = ({
         "justify-start text-white/80 text-2xl font-bold font-['Inter'] underline cursor-pointer " +
         className
       }
+      onClick={onClick}
     >
       {label}
     </Link>

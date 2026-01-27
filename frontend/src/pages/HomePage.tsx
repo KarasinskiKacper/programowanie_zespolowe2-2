@@ -24,6 +24,7 @@ export default function HomePage() {
   const products = useAppSelector(selectUnsoldFilteredAuctionsBySearchAndCategory);
   const categoryItems = useAppSelector(selectCategories);
   const selectedItems = useAppSelector(selectSelectedCategory);
+  const selectedCategoryId = useAppSelector(selectSelectedCategoryId);
   console.log(selectedItems);
 
   useEffect(() => {
@@ -59,7 +60,11 @@ export default function HomePage() {
             label={category.category_name}
             id_category={category.id_category}
             onClick={() => {
-              dispatch(setSelectedCategoryId(category.id_category));
+              dispatch(
+                setSelectedCategoryId(
+                  selectedCategoryId === category.id_category ? null : category.id_category,
+                ),
+              );
             }}
             selectedItems={selectedItems?.id_category}
           />

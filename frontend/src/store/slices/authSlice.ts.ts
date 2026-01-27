@@ -1,5 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { setSelectedCategoryId } from "./categoriesSlice";
 import Cookies from "js-cookie";
+import { setSearch } from "./auctionSlice";
 
 const initialState: {
   access_token: string | null;
@@ -42,6 +44,8 @@ export const authSlice = createSlice({
       state.last_name = null;
       state.phone_number = null;
       Cookies.remove("access_token", { path: "/" });
+      setSelectedCategoryId(null);
+      setSearch("");
     },
   },
 });
