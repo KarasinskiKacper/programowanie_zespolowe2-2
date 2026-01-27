@@ -41,6 +41,9 @@ def create_app():
     from routes.Uploads import bp as uploads_bp
     app.register_blueprint(uploads_bp)
     
+    from routes.Categories import bp as categories_bp
+    app.register_blueprint(categories_bp)
+    
     return app
 
 if __name__ == '__main__':
