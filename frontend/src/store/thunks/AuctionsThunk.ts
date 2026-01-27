@@ -139,3 +139,11 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
   const data = await response.json();
   return data;
 };
+
+export const getAuctionCategoriesThunk = () => async (dispatch, getState) => {
+  const response = await fetch(`${BASE_URL}/get_all_categories`, {
+    method: "GET",
+  });
+  const data = await response.json();
+  return data;
+};
