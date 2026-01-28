@@ -6,10 +6,11 @@ import remarkGfm from "remark-gfm";
 
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
-import { createNewAuctionThunk } from "@/store/thunks/AuctionsThunk";
+import { createNewAuctionThunk, getAuctionCategoriesThunk } from "@/store/thunks/AuctionsThunk";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/icon/Icon";
 import { CategoryItem } from "@/components/CategoryItem";
+import { selectCategories } from "@/store/slices/categoriesSlice";
 
 const toDatetimeLocal = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -86,11 +87,22 @@ export default function NewAuctionPage() {
     e.target.value = "";
   };
 
-  const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"] // TODO dostarczyć listę kategiorii ze state
-  const [selectedItems, setSelectedItems] = useState<Array<string>>([]) // TODO obsłużyć logikę listy
+  const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"];
+  const [categories, setCategories] = useState([]);
+  const [selectedItems, setSelectedItems] = useState<Array<number>>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const categories = await dispatch<any>(getAuctionCategoriesThunk());
+      console.log(categories);
+
+      setCategories(categories);
+    };
+    load();
+  }, [dispatch]);
 
   const parseToMarkdown = (markdown) => {
-    return markdown.replace(/(?<!  )\n/g, '  \n');
+    return markdown.replace(/(?<!  )\n/g, "  \n");
   }
 
   return (
@@ -109,16 +121,24 @@ export default function NewAuctionPage() {
                   src={images.length ? images[selectedImageIndex]?.previewUrl : "/no-image.png"}
                   className={`w-full h-full object-contain max-h-96`}
                 />
-                {!!images.length && <div className="absolute right-0 bottom-0 p-4 cursor-pointer" onClick={()=>{
-                    setImages(prev => prev.filter((img, index)=>index!=selectedImageIndex))
-                    if(selectedImageIndex) setSelectedImageIndex(selectedImageIndex-1);
-                  }}>
-                  <Icon name="trash" color="#DD0000" size={48}></Icon>
-                </div>}
+                {!!images.length && (
+                  <div
+                    className="absolute right-0 bottom-0 p-4 cursor-pointer"
+                    onClick={() => {
+                      setImages((prev) => prev.filter((img, index) => index != selectedImageIndex));
+                      if (selectedImageIndex) setSelectedImageIndex(selectedImageIndex - 1);
+                    }}
+                  >
+                    <Icon name="trash" color="#DD0000" size={48}></Icon>
+                  </div>
+                )}
               </div>
               <div className="self-stretch inline-flex justify-start items-center gap-4">
                 {images.map((image: ImageItem, index: number) => (
-                  <div key={index} className={`cursor-pointer w-32 h-32 bg-neutral-400 outline outline-brand-primary hover:outline-4 ${index === selectedImageIndex ? "outline-4" : ""}`}>
+                  <div
+                    key={index}
+                    className={`cursor-pointer w-32 h-32 bg-neutral-400 outline outline-brand-primary hover:outline-4 ${index === selectedImageIndex ? "outline-4" : ""}`}
+                  >
                     <img
                       src={image.previewUrl}
                       className={`w-full h-full object-cover`}
@@ -128,7 +148,9 @@ export default function NewAuctionPage() {
                 ))}
                 <label className="cursor-pointer w-32 h-32 relative hover:outline-4 outline outline-2 outline-brand-primary">
                   <input type="file" className="hidden" onChange={onAddImage} />
-                  <div className="absolute bottom-1 w-32 h-32 items-center justify-center text-8xl font-center text-brand-primary select-none">+</div>
+                  <div className="absolute bottom-1 w-32 h-32 items-center justify-center text-8xl font-center text-brand-primary select-none">
+                    +
+                  </div>
                 </label>
               </div>
             </div>
@@ -181,14 +203,19 @@ export default function NewAuctionPage() {
             <div className="flex-col self-stretch text-2xl font-semibold text-orange-600 gap-2">
               Kategorie:
               <div className="gap-4 flex-wrap">
-                {categoryItems.map(category => <CategoryItem 
-                  label={category}
-                  onClick={()=>{
-                    if(selectedItems.includes(category)) setSelectedItems(selectedItems.filter(item => item != category));
-                    else setSelectedItems([...selectedItems, category])
-                  }}
-                  selectedItems={selectedItems}
-                />)}
+                {categories.map((category) => (
+                  <CategoryItem
+                    label={category.category_name}
+                    onClick={() => {
+                      if (selectedItems.includes(category.id_category))
+                        setSelectedItems(
+                          selectedItems.filter((item) => item != category.id_category),
+                        );
+                      else setSelectedItems([...selectedItems, category.id_category]);
+                    }}
+                    selectedItemsOverride={selectedItems.includes(category?.id_category)}
+                  />
+                ))}
               </div>
             </div>
             <div className="self-stretch h-0.5 relative bg-orange-600 rounded-[5px]" />
@@ -216,6 +243,7 @@ export default function NewAuctionPage() {
                       description,
                       startDate,
                       endDate,
+                      categories: selectedItems,
                     }),
                   )) == false
                 ) {
@@ -245,7 +273,9 @@ export default function NewAuctionPage() {
               placeholder="Opis produktu..."
             />
             <div className="flex-1 p-2 markdown flex-col">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{parseToMarkdown(description)}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {parseToMarkdown(description)}
+              </ReactMarkdown>
             </div>
           </div>
         </div>

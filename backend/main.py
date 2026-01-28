@@ -41,12 +41,14 @@ def create_app():
     from routes.Uploads import bp as uploads_bp
     app.register_blueprint(uploads_bp)
     
+    from routes.Categories import bp as categories_bp
+    app.register_blueprint(categories_bp)
+    
     return app
 
 if __name__ == '__main__':
     app = create_app()
 
-    scheduler = start_scheduler()
+    scheduler = start_scheduler(app)
     atexit.register(lambda: scheduler.shutdown())
-
     socketio.run(app, debug=True, host=os.getenv("BACKEND_HOST"), port=os.getenv("BACKEND_PORT"))

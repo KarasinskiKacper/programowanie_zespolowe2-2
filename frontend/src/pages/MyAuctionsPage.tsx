@@ -7,6 +7,15 @@ import {
   getUserAuctionsThunk,
   getArchiveAuctionsThunk,
 } from "@/store/thunks/AuctionsThunk";
+import { selectSearch } from "@/store/slices/auctionSlice";
+import {
+  setOwnAuctions,
+  setParticipatingAuctions,
+  setArchivedAuctions,
+  selectOwnAuctions,
+  selectParticipatingAuctions,
+  selectArchivedAuctions,
+} from "@/store/slices/userAuctionSlice";
 
 import { handleAutoLoginWithRerouteToLoginPage } from "@/components/AutoLoginHandler";
 
@@ -126,49 +135,30 @@ export default function HomePage() {
   const dispatch = useAppDispatch();
   handleAutoLoginWithRerouteToLoginPage();
 
-  const [myAuctions, setMyAuctions] = useState(myAuctionsPlaceholder);
-  const [participantAuctions, setParticipantAuctions] = useState(participantAuctionsPlaceholder);
-  const [archiveAuctions, setArchiveAuctions] = useState(archiveAuctionsPlaceholder);
+  const search = useAppSelector(selectSearch);
+  const myAuctions = useAppSelector(selectOwnAuctions);
+  const participantAuctions = useAppSelector(selectParticipatingAuctions);
+  const archiveAuctions = useAppSelector(selectArchivedAuctions);
 
-  const accessToken = useAppSelector((state) => state.auth.access_token);
-  useEffect(() => {
-    if (!accessToken) return;
-    (async () => {
-      const myAuctionsResponse = await dispatch(getUserOwnAuctionsThunk());
-      const myAuctionsData = myAuctionsResponse.map((product: any) => ({
-        id: String(product.id_auction),
-        name: product.title,
-        price: Math.round(product.current_price),
-        imageUrl: product.main_photo,
-        endDate: product.end_date,
-      }));
-      setMyAuctions(myAuctionsData);
+  const matchesSearch = (title: string, q: string) =>
+    title.toLowerCase().includes(q.trim().toLowerCase());
 
-      const participantAuctionsResponse = await dispatch(getUserAuctionsThunk());
-      const participantAuctionsData = participantAuctionsResponse.map((product: any) => ({
-        id: String(product.id_auction),
-        name: product.title,
-        price: Math.round(product.current_price),
-        imageUrl: product.main_photo,
-        endDate: product.end_date,
-      }));
-      setParticipantAuctions(participantAuctionsData);
+  const q = search.trim().toLowerCase();
 
-      const archiveAuctionsResponse = await dispatch(getArchiveAuctionsThunk());
-      const archiveAuctionsData = archiveAuctionsResponse.map((product: any) => ({
-        id: String(product.id_auction),
-        name: product.title,
-        price: Math.round(product.final_price),
-        imageUrl: product.main_photo,
-        endDate: product.end_date,
-      }));
-      console.log(participantAuctionsResponse);
+  const myAuctionsFiltered = q
+    ? myAuctions.filter((a: any) => matchesSearch(a.title ?? "", q))
+    : myAuctions;
 
-      setArchiveAuctions(archiveAuctionsData);
-    })();
-  }, [accessToken]);
+  const participantAuctionsFiltered = q
+    ? participantAuctions.filter((a: any) => matchesSearch(a.title ?? "", q))
+    : participantAuctions;
 
-  const productCards1 = myAuctions
+  const archiveAuctionsFiltered = q
+    ? archiveAuctions.filter((a: any) => matchesSearch(a.title ?? "", q))
+    : archiveAuctions;
+
+
+  const productCards1 = myAuctionsFiltered
     .reduce((rows: any[], product, index) => {
       if (index % 5 === 0) rows.push([]);
       rows[rows.length - 1].push(product);
@@ -177,12 +167,12 @@ export default function HomePage() {
     ?.map((row, rowIndex) => (
       <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
-          <AuctionCard key={product.id} product={product} />
+          <AuctionCard key={String(product.id_auction)} product={product} />
         ))}
       </div>
     ));
 
-  const productCards2 = participantAuctions
+  const productCards2 = participantAuctionsFiltered
     .reduce((rows: any[], product, index) => {
       if (index % 5 === 0) rows.push([]);
       rows[rows.length - 1].push(product);
@@ -191,12 +181,12 @@ export default function HomePage() {
     ?.map((row, rowIndex) => (
       <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
-          <AuctionCard key={product.id} product={product} />
+          <AuctionCard key={String(product.id_auction)} product={product} />
         ))}
       </div>
     ));
 
-  const productCards3 = archiveAuctions
+  const productCards3 = archiveAuctionsFiltered
     .reduce((rows: any[], product, index) => {
       if (index % 5 === 0) rows.push([]);
       rows[rows.length - 1].push(product);
@@ -205,7 +195,7 @@ export default function HomePage() {
     ?.map((row, rowIndex) => (
       <div key={rowIndex} className="self-stretch inline-flex justify-start items-streach">
         {row.map((product: any) => (
-          <AuctionCard key={product.id} product={product} />
+          <AuctionCard key={String(product.id_auction)} product={product} />
         ))}
       </div>
     ));
@@ -219,13 +209,8 @@ export default function HomePage() {
       />
       <Products
         label="Aukcje w których biorę udział"
-        emptyLabel="Obecnie nie bierzesz udziałuw żadnych aukcjach"
+        emptyLabel="Obecnie nie bierzesz udziału w żadnych aukcjach"
         productsCards={productCards2}
-      />
-      <Products
-        label="Wygrane aukcje"
-        emptyLabel="Nie wygrałeś jeszcze żandej aukcji"
-        productsCards={productCards3}
       />
       <Products
         label="Archiwum"

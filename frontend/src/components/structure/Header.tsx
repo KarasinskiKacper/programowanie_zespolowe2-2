@@ -4,11 +4,44 @@ import Icon from "../icon/Icon";
 import { icons } from "../icon/Icon";
 import { useRouter } from "next/dist/client/components/navigation";
 import { handleAutoLogin } from "@/components/AutoLoginHandler";
-import { useState } from "react";
 import { Avatar } from "../Avatar";
+import { useEffect, useState } from "react";
+
+import {
+  getAllAuctionsThunk,
+  getArchiveAuctionsThunk,
+  getAuctionCategoriesThunk,
+  getUserAuctionsThunk,
+  getUserOwnAuctionsThunk,
+} from "@/store/thunks/AuctionsThunk";
+import {
+  setAuctions,
+  selectAllAuctions,
+  selectUnsoldAuctions,
+  setSearch,
+  selectSearch,
+} from "@/store/slices/auctionSlice";
+
+import { socket } from "@/socket";
+import { usePathname } from "next/navigation";
+import { setCategories, setSelectedCategoryId } from "@/store/slices/categoriesSlice";
+import {
+  selectArchivedAuctions,
+  selectOwnAuctions,
+  selectParticipatingAuctions,
+  setArchivedAuctions,
+  setOwnAuctions,
+  setParticipatingAuctions,
+} from "@/store/slices/userAuctionSlice";
 
 export default function Header() {
   const dispatch = useAppDispatch();
+  const pathname = usePathname();
+
+  const myAuctions = useAppSelector(selectOwnAuctions);
+  const participantAuctions = useAppSelector(selectParticipatingAuctions);
+  const archiveAuctions = useAppSelector(selectArchivedAuctions);
+
   const router = useRouter();
   const {
     isAuthenticated,
@@ -19,8 +52,82 @@ export default function Header() {
     last_name,
     phone_number,
   } = useAppSelector(selectAuth);
+  const search = useAppSelector(selectSearch);
 
   handleAutoLogin();
+
+  const onAuctionUpdated = () => {
+    console.log("onAuctionUpdated");
+  };
+  const onAuctionClosed = () => {
+    console.log("onAuctionUpdated");
+  };
+
+  const scheduler_check = () => {
+    console.log("scheduler_check");
+  };
+
+  useEffect(() => {
+    dispatch(setSearch(""));
+  }, [pathname, dispatch]);
+
+  useEffect(() => {
+    const load = async () => {
+      const categories = await dispatch<any>(getAuctionCategoriesThunk());
+      dispatch(setCategories(categories));
+    };
+    load();
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    socket.on("auction_updated", onAuctionUpdated);
+    socket.on("auction_closed", onAuctionClosed);
+    socket.on("scheduler_check", scheduler_check);
+
+    return () => {
+      socket.off("auction_updated");
+      socket.off("auction_closed");
+    };
+  }, [isAuthenticated]);
+
+  const accessToken = useAppSelector((state) => state.auth.access_token);
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const load = async () => {
+      const own = await dispatch<any>(getUserOwnAuctionsThunk());
+      dispatch(setOwnAuctions(own));
+
+      const participating = await dispatch<any>(getUserAuctionsThunk());
+      dispatch(setParticipatingAuctions(participating));
+
+      const archived = await dispatch<any>(getArchiveAuctionsThunk());
+      dispatch(setArchivedAuctions(archived));
+      console.log("socket.connected", socket.connected);
+
+      for (const ownAction of own) {
+        socket.emit("join", { auction: ownAction.id_auction });
+      }
+
+      for (const participatingAction of participating) {
+        socket.emit("join", { auction: participatingAction.id_auction });
+      }
+    };
+
+    load();
+  }, [accessToken, dispatch]);
+  useEffect(() => {
+    const load = async () => {
+      const data = await dispatch<any>(getAllAuctionsThunk());
+      dispatch(setAuctions(data));
+    };
+
+    load();
+  }, [accessToken, dispatch]);
 
   return (
     <div className="flex-1 px-8 bg-brand-primary justify-start items-start fixed w-full z-10">
@@ -38,6 +145,8 @@ export default function Header() {
             <input
               className="flex-1 h-full outline-none border-none text-2xl font-bold font-['Inter']"
               placeholder="Szukaj..."
+              value={search}
+              onChange={(e) => dispatch(setSearch(e.target.value))}
             />
             <div className="px-4 py-3 flex justify-start items-center gap-2.5">
               <Icon name="search" size={32} color="#f00" />
@@ -61,7 +170,7 @@ export default function Header() {
             <div className="justify-start text-white text-2xl font-bold font-['Inter'] underline select-none">
               {first_name} {last_name}
             </div>
-            <Avatar size={48}/>
+            <Avatar size={48} />
           </div>
         </div>
       )}

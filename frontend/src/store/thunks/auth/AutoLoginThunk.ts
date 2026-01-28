@@ -23,14 +23,6 @@ export const autoLoginThunk = () => async (dispatch, getState) => {
     return false;
   }
   const userData = await userDataResponse.json();
-  console.log({
-    access_token: cookie,
-    create_account_date: userData.create_account_date,
-    email: userData.email,
-    first_name: userData.first_name,
-    last_name: userData.last_name,
-    phone_number: userData.phone_number,
-  })
 
   dispatch(
     login({
