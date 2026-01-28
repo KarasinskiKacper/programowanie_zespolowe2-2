@@ -338,20 +338,6 @@ def start_scheduler(app):
     APP = app
     SCHEDULER = BackgroundScheduler()
     SCHEDULER.start()
-    
-def start_scheduler():
-    """
-    @brief Initializes and starts BackgroundScheduler with initial auction scheduling.
-
-    Sets global scheduler, starts it, creates app context for schedule_next_auction().
-    
-    @note Modifies global 'scheduler' variable.
-    
-    @return Active scheduler instance.
-    """
-    global scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.start()
 
     logger.debug("Scheduler started.")
 
