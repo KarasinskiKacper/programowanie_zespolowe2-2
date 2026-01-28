@@ -18,7 +18,7 @@ APP = None
 
 @socketio.on('join')
 def handle_join(data):
-    """
+    """!
     @brief Handles client joining auction SocketIO room.
 
     Validates 'auction' field, calls join_room(). Broadcasts user_joined confirmation.
@@ -44,7 +44,7 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
-    """
+    """!
     @brief Handles client leaving auction SocketIO room.
 
     Validates 'auction' in data, calls leave_room(). Broadcasts user_left to room.
@@ -69,7 +69,7 @@ def handle_leave(data):
     emit('user_left', {'auction': auction})
 
 def get_auction_lock(auction_id):
-    """
+    """!
     @brief Returns the lock object for auction-specific synchronization.
 
     Assumes _auction_locks dict populated elsewhere (e.g., on-demand RLock).
@@ -83,7 +83,7 @@ def get_auction_lock(auction_id):
     return _auction_locks[auction_id]
 
 def get_next_auction_to_close():
-    """
+    """!
     @brief Finds the active auction ending soonest (end_date + overtime).
 
     Queries 'at_auction' status auctions, returns min by computed end time.
@@ -100,7 +100,7 @@ def get_next_auction_to_close():
     return next_auction
 
 def get_next_auction_to_open():
-    """
+    """!
     @brief Opens 'not_issued' auction to 'at_auction' status.
 
     Updates status, commits, schedules closure. Reschedules next open if invalid.
@@ -121,7 +121,7 @@ def get_next_auction_to_open():
     return next_auction
 
 def close_auction_if_ended(auction_id, expected_overtime=0):
-    """
+    """!
     @brief Closes auction if ended, handling concurrent overtime changes.
 
     App context check: refreshes auction under lock, verifies end time vs expected_overtime.
@@ -183,7 +183,7 @@ def close_auction_if_ended(auction_id, expected_overtime=0):
         schedule_next_auction()
 
 def open_auction(auction_id):
-    """
+    """!
     @brief Opens 'not_issued' auction to 'at_auction' status.
 
     Updates status, commits, schedules closure. Reschedules next open if invalid.
@@ -210,7 +210,7 @@ def open_auction(auction_id):
         schedule_auction_closure(auction)
 
 def schedule_auction_closure(auction):
-    """
+    """!
     @brief Schedules auction closure job at end_date + overtime.
 
     Removes existing job if present, adds new date-trigger job for close_auction_if_ended.
@@ -243,7 +243,7 @@ def schedule_auction_closure(auction):
     logger.debug(f"Scheduled closure for Auction {auction.id_auction} at {auction_end_time} with overtime {auction.overtime} seconds.")
 
 def schedule_auction_opening(auction):
-    """
+    """!
     @brief Schedules auction opening job at start_date (or immediate if past).
 
     Removes existing job, adds date-trigger for open_auction(id_auction).
@@ -273,7 +273,7 @@ def schedule_auction_opening(auction):
     logger.debug(f"Scheduled opening for Auction {auction.id_auction} at {auction_start_time}.")
 
 def schedule_next_auction():
-    """
+    """!
     @brief Schedules the next auction closure or reschedules self in 1 minute.
 
     Creates app context, finds next auction via get_next_auction_to_close().
@@ -298,7 +298,7 @@ def schedule_next_auction():
             logger.debug("No active auctions to schedule.")
 
 def schedule_open_next_auction():
-    """
+    """!
     @brief Schedules next 'not_issued' auction opening or reschedules self.
 
     App context finds get_next_auction_to_open(), calls schedule_auction_opening().
@@ -323,7 +323,7 @@ def schedule_open_next_auction():
             logger.debug("No upcoming auctions to schedule.")
 
 def start_scheduler(app):
-    """
+    """!
     @brief Initializes scheduler with app context binding.
 
     Sets global APP for context usage, creates/starts BackgroundScheduler.
@@ -340,7 +340,7 @@ def start_scheduler(app):
     SCHEDULER.start()
     
 def start_scheduler():
-    """
+    """!
     @brief Initializes and starts BackgroundScheduler with initial auction scheduling.
 
     Sets global scheduler, starts it, creates app context for schedule_next_auction().
@@ -362,7 +362,7 @@ def start_scheduler():
     return SCHEDULER
 
 def on_auction_update():
-    """
+    """!
     @brief Triggers auction scheduling refresh after auction changes.
 
     Recreates app context and calls schedule_next_auction() to handle updates

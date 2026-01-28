@@ -10,7 +10,7 @@ bp = Blueprint('auctions', __name__, url_prefix='/api')
 
 @bp.route('/get_all_auctions', methods=['GET'])
 def get_all_auctions():
-    """
+    """!
     @brief Retrieves all auctions with aggregated max prices and categories.
 
     Complex query uses subqueries for max bid per auction (or start_price),
@@ -64,7 +64,7 @@ def get_all_auctions():
 
 @bp.route('/get_auction_details', methods=['GET'])
 def get_auction_details():
-    """
+    """!
     @brief Retrieves complete details for a specific auction by ID.
 
     Fetches auction, seller/winner info, all photos (main separate, others in array),
@@ -133,7 +133,7 @@ def get_auction_details():
 @bp.route('/create_auction', methods=['POST'])
 @jwt_required()
 def create_auction():
-    """
+    """!
     @brief Creates a new auction for the authenticated seller with photos and categories.
 
     Validates required fields, sets status based on start_date vs now(). Adds auction,
@@ -215,7 +215,7 @@ def create_auction():
 @bp.route('/place_bid', methods=['POST'])
 @jwt_required()
 def place_bid():
-    """
+    """!
     @brief Places a bid on an active auction with validation and overtime extension.
 
     Validates bid > current + 1.0, not after end, not duplicate timestamp. Uses lock for concurrency.
@@ -307,7 +307,7 @@ def place_bid():
 @bp.route('/get_user_own_auctions', methods=['GET'])
 @jwt_required()
 def get_user_own_auctions():
-    """
+    """!
     @brief Retrieves all auctions owned by the authenticated seller.
 
     Fetches seller's auctions with main photo, highest bid (or start_price), 
@@ -359,7 +359,7 @@ def get_user_own_auctions():
 @bp.route('/get_user_auctions', methods=['GET'])
 @jwt_required()
 def get_user_auctions():
-    """
+    """!
     @brief Retrieves active auctions for the authenticated user.
 
     Fetches user's bids from AuctionPriceHistory, gets distinct auctions not yet ended
@@ -412,7 +412,7 @@ def get_user_auctions():
 @bp.route('/archived_auctions', methods=['GET'])
 @jwt_required()
 def archived_auctions():
-    """
+    """!
     @brief Retrieves archived (ended) auctions owned by the authenticated seller.
 
     Filters seller's auctions where end_date + overtime < now(). Includes main photo,
@@ -467,7 +467,7 @@ def archived_auctions():
 @bp.route('/delete_auction', methods=['POST'])
 @jwt_required()
 def delete_auction():
-    """
+    """!
     @brief Deletes an auction. Only the seller can delete an auction.
 
     @detail Requires JWT authentication. Parses id_auction from JSON body, verifies user ownership, deletes associated photos and bids first, then the auction. Calls on_auction_update() post-deletion.

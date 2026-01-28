@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_tok
 from werkzeug.utils import secure_filename
 
 def allowed_file(filename):
-    """
+    """!
     @brief Validates file extension against app config ALLOWED_EXTENSIONS.
 
     Case-insensitive check using rsplit for final extension. Defaults to 
@@ -31,7 +31,7 @@ bp = Blueprint('uploads', __name__, url_prefix='')
 @bp.route('/api/upload_image', methods=['POST'])
 @jwt_required()
 def upload_image():
-    """
+    """!
     @brief Uploads image file, validates type/size, saves with UUID name.
 
     Requires JWT. Checks 'image' file field, allowed_file(), size <= MAX_FILE_SIZE.
@@ -73,7 +73,7 @@ def upload_image():
 
 @bp.route('/uploads/<filename>', methods=['GET'])
 def serve_image(filename):
-    """
+    """!
     @brief Serves uploaded image file by filename.
 
     Uses send_from_directory with secure_filename for path traversal protection.

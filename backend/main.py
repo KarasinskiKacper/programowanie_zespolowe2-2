@@ -9,7 +9,7 @@ from auctions import socketio, start_scheduler
 import atexit
 
 def create_app():
-    """
+    """!
     @brief Creates and configures the Flask application instance.
 
     Loads .env, sets JWT/SQLAlchemy configs, CORS, SocketIO, blueprints.

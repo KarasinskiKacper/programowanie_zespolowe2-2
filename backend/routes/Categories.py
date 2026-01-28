@@ -6,7 +6,7 @@ bp = Blueprint('categories', __name__, url_prefix='/api')
 
 @bp.route('/get_all_categories', methods=['GET'])
 def get_all_categories():
-    """
+    """!
     @brief Returns a list of all categories.
 
     @return list: A list of dictionaries where each dictionary contains the id and name of a category.

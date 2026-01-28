@@ -8,7 +8,7 @@ bp = Blueprint('users', __name__, url_prefix='/api')
 @bp.route('/get_user_info', methods=['GET'])
 @jwt_required()
 def get_user_info():
-    """
+    """!
     @brief Retrieves profile info for the authenticated user.
 
     Returns basic user details from JWT identity. No input parameters needed.
@@ -33,7 +33,7 @@ def get_user_info():
 @bp.route('/change_password', methods=['POST'])
 @jwt_required()
 def change_password():
-    """
+    """!
     @brief Changes authenticated user's password after old password verification.
 
     Requires JWT. Validates old_password via check_password(), sets new_password directly.
@@ -69,7 +69,7 @@ def change_password():
 
 @bp.route('/login', methods=['POST'])
 def login():
-    """
+    """!
     @brief Authenticates user and returns JWT access token.
 
     Validates credentials via user.check_password() method, generates JWT 
@@ -100,7 +100,7 @@ def login():
 
 @bp.route('/register', methods=['POST'])
 def register():
-    """
+    """!
     @brief Registers a new user and returns JWT access token.
 
     Validates required fields, checks email uniqueness (no hash—consider bcrypt).
@@ -148,7 +148,7 @@ def register():
 
 @bp.route('/is_email_taken', methods=['GET'])
 def check_email():
-    """
+    """!
     @brief Checks if an email is already registered.
 
     Simple existence check for email uniqueness before registration.
