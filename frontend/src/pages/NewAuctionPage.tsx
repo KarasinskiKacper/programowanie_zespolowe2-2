@@ -103,9 +103,7 @@ export default function NewAuctionPage() {
 
   const parseToMarkdown = (markdown) => {
     return markdown.replace(/(?<!  )\n/g, "  \n");
-  };
-
-  console.log(selectedItems);
+  }
 
   return (
     <div className="self-stretch py-8 inline-flex flex-col justify-start items-center gap-2.5 overflow-hidden">

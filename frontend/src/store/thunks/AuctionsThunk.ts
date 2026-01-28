@@ -1,3 +1,4 @@
+import { socket } from "@/socket";
 import { ca } from "date-fns/locale";
 
 const BASE_URL = `${process.env.BASE_BACKEND_API_URL}/api`;
@@ -105,7 +106,6 @@ export const getAuctionDetailsThunk = (auctionId) => async (dispatch, getState) 
 
 export const createNewAuctionThunk = (auctionData) => async (dispatch, getState) => {
   const images: { is_main: boolean; url: any }[] = [];
-  console.log(auctionData.images[0].file);
 
   for (const image of auctionData.images) {
     const res = await dispatch(uploadAuctionPhotoThunk(image.file));
@@ -141,6 +141,9 @@ export const createNewAuctionThunk = (auctionData) => async (dispatch, getState)
   }
 
   const data = await response.json();
+  console.log("createNewAuctionThunk", data.id_auction);
+
+  socket.emit("join", { auction: data.id_auction });
   return data;
 };
 
@@ -150,4 +153,20 @@ export const getAuctionCategoriesThunk = () => async (dispatch, getState) => {
   });
   const data = await response.json();
   return data;
+};
+
+export const placeBidThunk = (auctionId, bidAmount) => async (dispatch, getState) => {
+  const accessToken = getState().auth.access_token;
+  const response = await fetch(`${BASE_URL}/place_bid`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ id_auction: auctionId, new_price: bidAmount }),
+  });
+  const data = await response.json();
+  console.log(data);
+
+  return response.ok;
 };

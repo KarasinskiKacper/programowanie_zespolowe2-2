@@ -1,4 +1,4 @@
-from flask_socketio import SocketIO, join_room, leave_room, emit
+from flask_socketio import join_room, leave_room, emit
 from threading import Lock
 from collections import defaultdict
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -6,21 +6,25 @@ from sqlalchemy import desc
 from db_objects import AuctionPriceHistory, Auctions, db
 from datetime import datetime, timedelta
 import logging
+from app_state import socketio
 
 # TODO add scheduled auction opening
 
 # TODO remove debug logging
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.CRITICAL)
 logger = logging.getLogger("auctions_scheduler_test")
-
-socketio = SocketIO(cors_allowed_origins="*")
 
 _auction_locks = defaultdict(Lock)
 
-scheduler = None
+SCHEDULER = None
+APP = None
 
 @socketio.on('join')
 def handle_join(data):
+    print("join event received:", data)
+    if not 'auction' in data.keys():
+        emit('error', {'message': 'Invalid data format', 'code': 0})
+        return
     auction = data['auction']
     if not auction:
         emit('error', {'message': 'Missing auction to join', 'code': 1})
@@ -32,6 +36,10 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
+    print("leave event received:", data)
+    if not 'auction' in data.keys():
+        emit('error', {'message': 'Invalid data format', 'code': 0})
+        return
     auction = data['auction']
     if not auction:
         emit('error', {'message': 'Missing auction to leave', 'code': 2})
@@ -54,10 +62,18 @@ def get_next_auction_to_close():
 
     return next_auction
 
+def get_next_auction_to_open():
+    upcoming_auctions = Auctions.query.filter(Auctions.status == 'not_issued').all()
+
+    if not upcoming_auctions:
+        return None
+    
+    next_auction = min(upcoming_auctions, key=lambda auction: auction.start_date)
+
+    return next_auction
+
 def close_auction_if_ended(auction_id, expected_overtime=0):
-    from main import create_app
-    app = create_app()
-    with app.app_context():
+    with APP.app_context():
         auction = Auctions.query.get(auction_id)
 
         if not auction or auction.status != 'at_auction':
@@ -105,18 +121,35 @@ def close_auction_if_ended(auction_id, expected_overtime=0):
 
         schedule_next_auction()
 
+def open_auction(auction_id):
+    with APP.app_context():
+        auction = Auctions.query.get(auction_id)
+
+        if not auction or auction.status != 'not_issued':
+            logger.debug(f"Auction {auction_id} not found or not scheduled.")
+            schedule_open_next_auction()
+            return
+        
+        auction.status = 'at_auction'
+        db.session.commit()
+
+        logger.debug(f"Auction {auction_id} is now open for bidding.")
+        
+        schedule_auction_closure(auction)
 
 def schedule_auction_closure(auction):
     auction_end_time = auction.end_date + timedelta(seconds=auction.overtime or 0)
     job_id = f'close_auction_{auction.id_auction}'
 
-    if scheduler.get_job(job_id):
-        scheduler.remove_job(job_id)
+    if SCHEDULER.get_job(job_id):
+        SCHEDULER.remove_job(job_id)
 
-    scheduler.add_job(
+    run_date = auction_end_time if auction_end_time > datetime.now() else datetime.now() + timedelta(seconds=1)
+
+    SCHEDULER.add_job(
         func=close_auction_if_ended,
         trigger='date',
-        run_date=auction_end_time,
+        run_date=run_date,
         args=[auction.id_auction],
         id=job_id,
         replace_existing=True,
@@ -125,38 +158,70 @@ def schedule_auction_closure(auction):
 
     logger.debug(f"Scheduled closure for Auction {auction.id_auction} at {auction_end_time} with overtime {auction.overtime} seconds.")
 
+def schedule_auction_opening(auction):
+    auction_start_time = auction.start_date
+    job_id = f'open_auction_{auction.id_auction}'
+
+    if SCHEDULER.get_job(job_id):
+        SCHEDULER.remove_job(job_id)
+
+    run_date = auction_start_time if auction_start_time > datetime.now() else datetime.now() + timedelta(seconds=1)
+
+    SCHEDULER.add_job(
+        func=open_auction,
+        trigger='date',
+        run_date=run_date,
+        args=[auction.id_auction],
+        id=job_id,
+        replace_existing=True,
+    )
+    logger.debug(f"Scheduled opening for Auction {auction.id_auction} at {auction_start_time}.")
+
 def schedule_next_auction():
-    from main import create_app
-    app = create_app()
-    with app.app_context():
+    with APP.app_context():
         next_auction = get_next_auction_to_close()
         if next_auction:
             schedule_auction_closure(next_auction)
         else:
-            scheduler.add_job(
+            SCHEDULER.add_job(
                 func=schedule_next_auction,
                 trigger='date',
+                id='schedule_next_auction',
                 run_date=datetime.now() + timedelta(minutes=1),
                 replace_existing=True,
             )
             logger.debug("No active auctions to schedule.")
 
-def start_scheduler():
-    global scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.start()
+def schedule_open_next_auction():
+    with APP.app_context():
+        next_auction = get_next_auction_to_open()
+        if next_auction:
+            schedule_auction_opening(next_auction)
+        else :
+            SCHEDULER.add_job(
+                func=schedule_open_next_auction,
+                trigger='date',
+                id='schedule_open_next_auction',
+                run_date=datetime.now() + timedelta(minutes=1),
+                replace_existing=True,
+            )
+            logger.debug("No upcoming auctions to schedule.")
+
+def start_scheduler(app):
+    global SCHEDULER, APP
+    APP = app
+    SCHEDULER = BackgroundScheduler()
+    SCHEDULER.start()
 
     logger.debug("Scheduler started.")
 
-    from main import create_app
-    app = create_app()
-    with app.app_context():
+    with APP.app_context():
         schedule_next_auction()
+        schedule_open_next_auction()
 
-    return scheduler
+    return SCHEDULER
 
 def on_auction_update():
-    from main import create_app
-    app = create_app()  
-    with app.app_context():
+    with APP.app_context():
         schedule_next_auction()
+        schedule_open_next_auction()

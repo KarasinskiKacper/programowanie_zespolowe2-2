@@ -25,15 +25,6 @@ export default function HomePage() {
   const categoryItems = useAppSelector(selectCategories);
   const selectedItems = useAppSelector(selectSelectedCategory);
   const selectedCategoryId = useAppSelector(selectSelectedCategoryId);
-  console.log(products);
-
-  useEffect(() => {
-    const load = async () => {
-      const categories = await dispatch<any>(getAuctionCategoriesThunk());
-      dispatch(setCategories(categories));
-    };
-    load();
-  }, [dispatch]);
 
   const productCards = products
     .reduce((rows: any[], product, index) => {
@@ -49,7 +40,6 @@ export default function HomePage() {
       </div>
     ));
 
-  // const [selectedItems, setSelectedItems] = useState<Array<string>>([]); // TODO obsłużyć logikę listy
 
   return (
     <div className="self-stretch py-16 flex-col justify-start items-center gap-8 overflow-hidden">

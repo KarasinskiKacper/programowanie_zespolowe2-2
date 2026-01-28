@@ -17,7 +17,6 @@ export default function Footer() {
 
   const categoryItems = useAppSelector(selectCategories);
   const selectedCategoryId = useAppSelector(selectSelectedCategoryId);
-  console.log(categoryItems);
 
   return (
     <div className="self-stretch p-16 bg-orange-600 inline-flex justify-center items-start gap-80 overflow-hidden">
@@ -111,12 +110,10 @@ export default function Footer() {
 }
 
 const FooterLink = ({
-  href,
   className = "",
   label,
   onClick,
 }: {
-  href: string;
   className?: string;
   label: string;
   onClick;

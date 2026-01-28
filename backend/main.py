@@ -49,7 +49,6 @@ def create_app():
 if __name__ == '__main__':
     app = create_app()
 
-    scheduler = start_scheduler()
+    scheduler = start_scheduler(app)
     atexit.register(lambda: scheduler.shutdown())
-
     socketio.run(app, debug=True, host=os.getenv("BACKEND_HOST"), port=os.getenv("BACKEND_PORT"))

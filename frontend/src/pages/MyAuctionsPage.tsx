@@ -157,24 +157,6 @@ export default function HomePage() {
     ? archiveAuctions.filter((a: any) => matchesSearch(a.title ?? "", q))
     : archiveAuctions;
 
-  const accessToken = useAppSelector((state) => state.auth.access_token);
-
-  useEffect(() => {
-    if (!accessToken) return;
-
-    const load = async () => {
-      const own = await dispatch<any>(getUserOwnAuctionsThunk());
-      dispatch(setOwnAuctions(own));
-
-      const participating = await dispatch<any>(getUserAuctionsThunk());
-      dispatch(setParticipatingAuctions(participating));
-
-      const archived = await dispatch<any>(getArchiveAuctionsThunk());
-      dispatch(setArchivedAuctions(archived));
-    };
-
-    load();
-  }, [accessToken, dispatch]);
 
   const productCards1 = myAuctionsFiltered
     .reduce((rows: any[], product, index) => {

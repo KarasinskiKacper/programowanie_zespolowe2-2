@@ -3,7 +3,8 @@ from sqlalchemy import asc, desc, func
 from datetime import datetime, timedelta
 from db_objects import CategoriesAuction, Users, db, Auctions, PhotosItem, AuctionPriceHistory, Categories
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from auctions import socketio, get_auction_lock, on_auction_update
+from auctions import get_auction_lock, on_auction_update
+from app_state import socketio
 
 bp = Blueprint('auctions', __name__, url_prefix='/api')
 
@@ -212,7 +213,7 @@ def place_bid():
 
         min_increment = 1.0
 
-        if float(new_price) <= float(current_price) + min_increment:
+        if float(new_price) < float(current_price) + min_increment:
             return jsonify({"error": f"Bid must be at least {min_increment} higher than the current price"}), 400
 
         price_history = AuctionPriceHistory(
@@ -238,7 +239,7 @@ def place_bid():
         "new_price": str(new_price),
         "id_user": user_id,
         "overtime": auction.overtime
-    }, to=f'auction_{auction.id_auction}')
+    }, to=f'{auction.id_auction}')
 
     return jsonify({"message": "Bid placed successfully"}), 200
 
