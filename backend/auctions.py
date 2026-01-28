@@ -323,23 +323,6 @@ def schedule_open_next_auction():
 
 def start_scheduler(app):
     """!
-    @brief Initializes scheduler with app context binding.
-
-    Sets global APP for context usage, creates/starts BackgroundScheduler.
-    
-    @param app Flask app instance.
-    
-    @note Call before scheduling jobs; globals used in scheduled funcs.
-    
-    @return None (modifies globals SCHEDULER, APP).
-    """
-    global SCHEDULER, APP
-    APP = app
-    SCHEDULER = BackgroundScheduler()
-    SCHEDULER.start()
-    
-def start_scheduler():
-    """!
     @brief Initializes and starts BackgroundScheduler with initial auction scheduling.
 
     Sets global scheduler, starts it, creates app context for schedule_next_auction().
@@ -348,9 +331,10 @@ def start_scheduler():
     
     @return Active scheduler instance.
     """
-    global scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.start()
+    global SCHEDULER, APP
+    APP = app
+    SCHEDULER = BackgroundScheduler()
+    SCHEDULER.start()
 
     logger.debug("Scheduler started.")
 
