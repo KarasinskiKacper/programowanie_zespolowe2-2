@@ -3,6 +3,13 @@ import { autoLoginThunk } from "./AutoLoginThunk";
 
 const BASE_URL = `${process.env.BASE_BACKEND_API_URL}/api`;
 
+/**
+ * Change password of user in backend
+ * @param {object} params - object with oldPassword and newPassword
+ * @param {function} dispatch - dispatch function from redux
+ * @param {object} getState - state of application
+ * @returns {Promise<boolean>} - promise with result of change password operation
+ */
 export const changePasswordThunk =
   ({ oldPassword, newPassword }) =>
   async (dispatch, getState) => {

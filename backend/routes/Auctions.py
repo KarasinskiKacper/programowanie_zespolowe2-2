@@ -128,7 +128,7 @@ def create_auction():
         start_date=datetime.fromisoformat(data["start_date"]),
         end_date=datetime.fromisoformat(data["end_date"]),
         overtime= 0,
-        status= "at_auction" if datetime.fromisoformat(data["start_date"]) >= datetime.now() else "not_issued",
+        status= "at_auction" if datetime.fromisoformat(data["start_date"]) <= datetime.now() + timedelta(seconds=10) else "not_issued",
     )
     
     db.session.add(new_auction)

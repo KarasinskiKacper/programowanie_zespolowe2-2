@@ -25,6 +25,11 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    /**
+     * Sets the access token, logs in the user and sets the user data.
+     * @param {state} The current state of the application.
+     * @param {action} The action to be performed, containing the access token, user data and other relevant information.
+     */
     login: (state, action) => {
       state.access_token = action.payload.access_token;
       state.isAuthenticated = true;
@@ -35,6 +40,11 @@ export const authSlice = createSlice({
       state.phone_number = action.payload.phone_number;
     },
 
+    /**
+     * Logs out the user by removing the access token from the state and cookies, and
+     * resets the user data and the selected category id and search.
+     * @param {state} The current state of the application.
+     */
     logout: (state) => {
       state.access_token = null;
       state.isAuthenticated = false;

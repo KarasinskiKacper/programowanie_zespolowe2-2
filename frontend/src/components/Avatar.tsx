@@ -1,6 +1,14 @@
 import { selectAuth } from "@/store/slices/authSelector";
 import { useAppSelector } from "@/store/store";
 
+/**
+ * Returns a div element with a background color derived from the name and surname,
+ * and displays the name and surname inside the div.
+ *
+ * @param {number} size - size of the div
+ * @param {string} name - name to display
+ * @param {string} surname - surname to display
+ */
 export function Avatar({size=32, name="", surname=""}: {size?: number, name?: string, surname?: string}) {
     if(!name||!surname){
         const {
@@ -12,6 +20,13 @@ export function Avatar({size=32, name="", surname=""}: {size?: number, name?: st
     }
     
 
+/**
+ * Returns the hash value of a given string. The hash is a 32-bit positive
+ * integer, which is calculated by summing the ASCII values of the characters and
+ * taking the modulus of the sum by 2^11.
+ * @param {string} str - the string to hash
+ * @return {number} the hash value
+ */
     const hashString = (str: string) => {
         let hash = 0
         for (let i = 0; i < str.length; i++) {
@@ -20,6 +35,14 @@ export function Avatar({size=32, name="", surname=""}: {size?: number, name?: st
         return Math.abs(hash)*11/7
     }
 
+/**
+ * This function takes a string seed and returns a color derived from the seed in the following format:
+ * hsl(${hue}, ${saturation}%, ${lightness}%)
+ * The hash value is a 32-bit positive integer, which is calculated by summing the ASCII values of the characters and
+* taking the modulus of the sum by 2^11. The hue is the hash value modulo 360, the saturation is 55 plus the hash value modulo 40, and the lightness is 30 plus the hash value modulo 30.
+ * @param {string} seed - the string to hash
+ * @return {string} the color derived from the seed
+ */
     const colorFromSeed = (seed: string) => {
         const hash = hashString(seed)
         

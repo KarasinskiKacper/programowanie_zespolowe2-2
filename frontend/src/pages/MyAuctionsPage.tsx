@@ -140,6 +140,12 @@ export default function HomePage() {
   const participantAuctions = useAppSelector(selectParticipatingAuctions);
   const archiveAuctions = useAppSelector(selectArchivedAuctions);
 
+  /**
+   * Checks if a given title matches a search query.
+   * @param {string} title The title to check.
+   * @param {string} q The search query.
+   * @returns {boolean} True if the title matches the search query, false otherwise.
+   */
   const matchesSearch = (title: string, q: string) =>
     title.toLowerCase().includes(q.trim().toLowerCase());
 
@@ -156,7 +162,6 @@ export default function HomePage() {
   const archiveAuctionsFiltered = q
     ? archiveAuctions.filter((a: any) => matchesSearch(a.title ?? "", q))
     : archiveAuctions;
-
 
   const productCards1 = myAuctionsFiltered
     .reduce((rows: any[], product, index) => {

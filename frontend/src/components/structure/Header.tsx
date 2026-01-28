@@ -45,6 +45,8 @@ export default function Header() {
   const participantAuctions = useAppSelector(selectParticipatingAuctions);
   const archiveAuctions = useAppSelector(selectArchivedAuctions);
 
+  const [notifications, setNotifications] = useState([]);
+
   const router = useRouter();
   const {
     isAuthenticated,
@@ -84,9 +86,33 @@ export default function Header() {
     }
   };
 
-  const onAuctionUpdated = () => {
+  const onAuctionUpdated = async (data) => {
     console.log("onAuctionUpdated");
     loadAuctionData();
+
+    const notifData = await dispatch(getAuctionDetailsThunk(data.id_auction));
+    const photoData = await dispatch(getAuctionPhotoThunk(notifData.main_photo));
+    console.log(notifData);
+
+    // notifications.push({
+    //   name: notifData.title,
+    //   href: `/aukcja/${data.id_auction}`,
+    //   img_src: "/no-image.png",
+    //   price: 300,
+    //   buttonMsg: "Zobacz",
+    // });
+
+    const tmp = [...notifications];
+    tmp.push({
+      name: notifData.title,
+      href: "/aukcja/" + data.id_auction,
+      img_src: photoData,
+      price: Math.round(notifData.current_price),
+      buttonMsg: "Zobacz",
+    });
+    setNotifications(tmp);
+
+    console.log(data.id_auction);
   };
   const onAuctionClosed = () => {
     console.log("onAuctionUpdated");
@@ -121,7 +147,7 @@ export default function Header() {
       socket.off("auction_updated");
       socket.off("auction_closed");
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, notifications]);
 
   const accessToken = useAppSelector((state) => state.auth.access_token);
 
@@ -159,7 +185,7 @@ export default function Header() {
           <div className="self-stretch px-8 flex justify-start items-center">
             <HeaderIcon name="add" size={40} onClick={() => router.push("/nowa-aukcja")} />
             <HeaderIcon name="auctions" size={40} onClick={() => router.push("/moje-aukcje")} />
-            <HeaderNotifications />
+            <HeaderNotifications notifications={notifications} />
           </div>
           <div
             onClick={() => {
@@ -208,78 +234,8 @@ const HeaderIcon = ({
   );
 };
 
-const HeaderNotifications = ({}) => {
-  const dispatch = useAppDispatch();
-  // const pathname = usePathname();
-
-  // const myAuctions = useAppSelector(selectOwnAuctions);
-  // const participantAuctions = useAppSelector(selectParticipatingAuctions);
-  // const archiveAuctions = useAppSelector(selectArchivedAuctions);
-
-  const router = useRouter();
-  const {
-    isAuthenticated,
-    access_token,
-    create_account_date,
-    email,
-    first_name,
-    last_name,
-    phone_number,
-  } = useAppSelector(selectAuth);
-
-  const [notifications, setNotifications] = useState([]);
+const HeaderNotifications = ({ notifications }) => {
   console.log("notifications", notifications);
-
-  // const notifications = [
-  //   {
-  //     name: "Piekarnik ZW 1353",
-  //     href: "/",
-  //     img_src: "/no-image.png",
-  //     userName: "Tom",
-  //     userSurname: "Karacov",
-  //     price: 200,
-  //     buttonMsg: "Przebij",
-  //   },
-  // ];
-
-  const onAuctionUpdated = async (data) => {
-    const notifData = await dispatch(getAuctionDetailsThunk(data.id_auction));
-    const photoData = await dispatch(getAuctionPhotoThunk(notifData.main_photo));
-    console.log(notifData);
-
-    // notifications.push({
-    //   name: notifData.title,
-    //   href: `/aukcja/${data.id_auction}`,
-    //   img_src: "/no-image.png",
-    //   price: 300,
-    //   buttonMsg: "Zobacz",
-    // });
-
-    const tmp = [...notifications];
-    tmp.push({
-      name: notifData.title,
-      href: "/aukcja/" + data.id_auction,
-      img_src: photoData,
-      price: Math.round(notifData.current_price),
-      buttonMsg: "Zobacz",
-    });
-    setNotifications(tmp);
-
-    console.log(data.id_auction);
-  };
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-    socket.on("auction_updated", onAuctionUpdated);
-    // socket.on("auction_closed", onAuctionClosed);
-
-    return () => {
-      socket.off("auction_updated");
-      // socket.off("auction_closed");
-    };
-  }, [isAuthenticated, notifications]);
 
   const [isOpen, setIsOpen] = useState(false);
   return (

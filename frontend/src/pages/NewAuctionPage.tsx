@@ -12,6 +12,11 @@ import Icon from "@/components/icon/Icon";
 import { CategoryItem } from "@/components/CategoryItem";
 import { selectCategories } from "@/store/slices/categoriesSlice";
 
+/**
+ * Converts a given Date object to a string in the format 'yyyy-mm-ddThh:min'.
+ * @param {Date} d The Date object to be converted.
+ * @returns {string} The converted string.
+ */
 const toDatetimeLocal = (d: Date) => {
   const pad = (n: number) => String(n).padStart(2, "0");
   const yyyy = d.getFullYear();
@@ -21,6 +26,12 @@ const toDatetimeLocal = (d: Date) => {
   const min = pad(d.getMinutes());
   return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
 };
+/**
+ * Adds a given number of minutes to a given datetime string in the format 'yyyy-mm-ddThh:min'.
+ * @param {string} dt The datetime string to be converted.
+ * @param {number} minutes The number of minutes to be added.
+ * @returns {string} The converted string.
+ */
 const addMinutesToDatetimeLocal = (dt: string, minutes: number) => {
   if (!dt) return "";
   const d = new Date(dt);
@@ -77,6 +88,12 @@ export default function NewAuctionPage() {
     return fromStart && fromStart > nowDateMin ? fromStart : nowDateMin;
   }, [startDate, nowDateMin]);
 
+/**
+ * Handles an event when a user adds a new image to the list.
+ * Extracts the first file from the event target's files list and
+ * adds it to the images state along with a preview URL.
+ * Resets the event target's value to an empty string.
+ */
   const onAddImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;

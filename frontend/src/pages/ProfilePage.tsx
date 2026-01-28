@@ -68,11 +68,6 @@ export default function HomePage() {
                       {newEmail}
                     </div>
                   </div>
-                  {/* <input
-                    className="justify-start text-black text-2xl font-normal font-['Inter']"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                  /> */}
                 </div>
                 <div className="inline-flex justify-start items-start gap-4">
                   <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter'] gap-2">
@@ -81,11 +76,6 @@ export default function HomePage() {
                       {newPhone}
                     </div>
                   </div>
-                  {/* <input
-                    className="justify-start text-black text-2xl font-normal font-['Inter']"
-                    value={newPhone}
-                    onChange={(e) => setNewPhone(e.target.value)}
-                  /> */}
                 </div>
                 <div className="inline-flex justify-start items-start gap-4">
                   <div className="justify-start text-neutral-500 text-2xl font-normal font-['Inter']">
@@ -107,9 +97,6 @@ export default function HomePage() {
                 router.push("/logowanie");
               }}
             />
-            {/* <Button label="Zapisz zmiany" onClick={ async () => {
-              
-            }} /> */}
           </div>
         </div>
         <div className="flex-1 self-stretch p-16 outline outline-2 outline-offset-[-2px] outline-orange-600 inline-flex flex-col justify-start items-center gap-16">

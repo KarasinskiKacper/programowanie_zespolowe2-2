@@ -87,7 +87,11 @@ export default function AuctionPage() {
     loadAuctionData();
 
     socket.on("auction_updated", onAuctionUpdated);
-  }, []);
+
+    return () => {
+      socket.off("auction_updated", onAuctionUpdated);
+    };
+  }, [auctionData?.price]);
 
   const end = new Date(endDate);
   const overtime2 = auctionData?.overtime ? auctionData?.overtime : 0;
@@ -173,7 +177,8 @@ export default function AuctionPage() {
               </div>
               <div className="self-stretch inline-flex justify-start items-start gap-4">
                 {auctionData?.owner.id != jwt.decode(userData?.access_token)?.sub &&
-                  auctionData?.status !== "sold" && (
+                  auctionData?.status === "at_auction" &&
+                  userData.isAuthenticated && (
                     <>
                       <input
                         type="number"

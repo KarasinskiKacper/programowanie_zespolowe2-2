@@ -5,7 +5,6 @@ import { useAppDispatch } from "@/store/store";
 import { useCountdown } from "@/hooks/useCountdown";
 
 import { getAuctionPhotoThunk } from "@/store/thunks/AuctionsThunk";
-import { get } from "http";
 
 export const AuctionCard = ({
   product,

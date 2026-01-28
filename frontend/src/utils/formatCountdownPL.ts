@@ -1,3 +1,9 @@
+/**
+ * Return appropriate plural form of given word based on given number.
+ * @param {number} n - number to determine plural form.
+ * @param {string[]} forms - array containing singular, few, many forms of the word.
+ * @returns {string} appropriate plural form of the word.
+ */
 function pluralPL(n: number, forms: [string, string, string]) {
   // forms: [one, few, many] -> np. ["dzień","dni","dni"]
   const mod10 = n % 10;
@@ -7,6 +13,11 @@ function pluralPL(n: number, forms: [string, string, string]) {
   return forms[2];
 }
 
+/**
+ * Format countdown in Polish language.
+ * @param {string} iso - ISO string of target date.
+ * @returns {string} Formatted countdown string.
+ */
 export default function formatCountdownPL(iso: string) {
   const target = new Date(iso);
   const now = new Date();

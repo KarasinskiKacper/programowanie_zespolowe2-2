@@ -31,9 +31,19 @@ export const auctionsSlice = createSlice({
   name: "auctions",
   initialState,
   reducers: {
+    /**
+     * Sets the list of auctions in the state.
+     * @param {state} The state of the application.
+     * @param {action} The action containing the list of auctions to set.
+     */
     setAuctions(state, action: PayloadAction<Auction[]>) {
       state.items = action.payload;
     },
+    /**
+     * Sets the search string in the state.
+     * @param {state} The state of the application.
+     * @param {action} The action containing the search string to set.
+     */
     setSearch(state, action: PayloadAction<string>) {
       state.search = action.payload;
     },

@@ -5,12 +5,10 @@ import authReducer from "./slices/authSlice.ts";
 import auctionsReducer from "./slices/auctionSlice";
 import userAuctionsReducer from "./slices/userAuctionSlice";
 import categoriesReducer from "./slices/categoriesSlice";
-// import usersRepoReducer from "./slices/usersRepoSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    // usersRepo: usersRepoReducer,
     auctions: auctionsReducer,
     userAuctions: userAuctionsReducer,
     categories: categoriesReducer,

@@ -19,9 +19,19 @@ export const categoriesSlice = createSlice({
   name: "categories",
   initialState,
   reducers: {
+    /**
+     * Sets the list of categories in the state.
+     * @param {CategoriesState} state - The state of the categories
+     * @param {PayloadAction<Category[]>} action - The action containing the list of categories to set
+     */
     setCategories(state, action: PayloadAction<Category[]>) {
       state.items = action.payload;
     },
+    /**
+     * Sets the selected category id in the state.
+     * @param {CategoriesState} state - The state of the categories
+     * @param {PayloadAction<number | null>} action - The action containing the selected category id to set
+     */
     setSelectedCategoryId(state, action: PayloadAction<number | null>) {
       state.selectedCategoryId = action.payload;
     },

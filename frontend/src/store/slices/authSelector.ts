@@ -1,14 +1,16 @@
 import type { RootState } from "../store";
 
-// wyciąga cały slice auth
 export const selectAuth = (state: RootState) => state.auth;
 
-// "2026-01-01T10:00:00" -> "01.01.2026"
+/**
+ * Format an ISO date string to dd.mm.yyyy
+ * @param {string | null} iso - ISO date string
+ * @returns {string | null} - Formatted date string or null if iso is invalid
+ */
 export const formatAuthDate = (iso: string | null) => {
   if (!iso) return null;
 
-  // bierzemy tylko część przed "T"
-  const [datePart] = iso.split("T"); // "2026-01-01"
+  const [datePart] = iso.split("T"); 
   const [yyyy, mm, dd] = datePart.split("-");
 
   if (!yyyy || !mm || !dd) return null;

@@ -4,6 +4,11 @@ import { login, logout } from "@/store/slices/authSlice.ts";
 
 const BASE_URL = `${process.env.BASE_BACKEND_API_URL}/api`;
 
+/**
+ * Fetches user data from the backend by providing an access token
+ * @param {string} accessToken - access token to be used for authentication
+ * @returns {Promise<Object>} The result of the fetch call as a JSON object
+ */
 export const fetchUserData = async (accessToken: string) => {
   const response = await fetch(`${BASE_URL}/get_user_info`, {
     method: "GET",
@@ -15,6 +20,11 @@ export const fetchUserData = async (accessToken: string) => {
   return response;
 };
 
+/**
+ * Logs a user in by sending a POST request to the backend with the provided email and password
+ * @param {{ email: string, password: string }} The email and password of the user to be logged in
+ * @returns {Promise<void>} A promise resolved when the login is successful or rejected
+ */
 export const loginThunk =
   ({ email, password }) =>
   async (dispatch, getState) => {
