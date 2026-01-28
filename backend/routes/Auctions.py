@@ -10,6 +10,17 @@ bp = Blueprint('auctions', __name__, url_prefix='/api')
 
 @bp.route('/get_all_auctions', methods=['GET'])
 def get_all_auctions():
+    """
+    @brief Retrieves all auctions with aggregated max prices and categories.
+
+    Complex query uses subqueries for max bid per auction (or start_price),
+    GROUP_CONCAT categories, LEFT JOIN main photo. Public endpoint for auction list.
+    
+    @return JSON array of auctions: id_auction, title, description, id_seller, 
+    start_price, current_price, dates, overtime, status, id_winner, main_photo, categories array.
+    
+    @retval 200 Success: Complete auctions list
+    """
     max_price_subquery = db.session.query(
         AuctionPriceHistory.id_auction,
         func.max(AuctionPriceHistory.new_price).label('max_price')
@@ -53,6 +64,21 @@ def get_all_auctions():
 
 @bp.route('/get_auction_details', methods=['GET'])
 def get_auction_details():
+    """
+    @brief Retrieves complete details for a specific auction by ID.
+
+    Fetches auction, seller/winner info, all photos (main separate, others in array),
+    highest bid/current price, categories. Public endpoint (no JWT required).
+    
+    @param id_auction Query param: Integer auction ID (required).
+    
+    @return Full auction JSON with seller/winner names, main_photo, photos array 
+    (non-main), current_price, highest_bidder ID, categories.
+    
+    @retval 200 Success: Detailed auction object
+    @retval 400 Missing id_auction
+    @retval 404 Auction not found
+    """
     auction_id = request.args.get('id_auction')
     if not auction_id:
         return jsonify({"error": "id_auction parameter is required"}), 400
@@ -107,6 +133,26 @@ def get_auction_details():
 @bp.route('/create_auction', methods=['POST'])
 @jwt_required()
 def create_auction():
+    """
+    @brief Creates a new auction for the authenticated seller with photos and categories.
+
+    Validates required fields, sets status based on start_date vs now(). Adds auction,
+    bulk-inserts PhotosItem (with main flag) and CategoriesAuction links post-flush.
+    
+    @param title String: Auction title (required).
+    @param description String: Description (required).
+    @param start_price Float: Starting price (required).
+    @param start_date ISO datetime: Auction start (required).
+    @param end_date ISO datetime: Auction end (required).
+    @param photos Array optional: [{"url": str, "is_main": bool}].
+    @param categories Array optional: [category IDs].
+    
+    @return JSON with new auction ID.
+    
+    @retval 201 Success: {"message": "...", "id_auction": ID}
+    @retval 400 Missing required fields
+    @retval 404 User not found
+    """
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -169,6 +215,21 @@ def create_auction():
 @bp.route('/place_bid', methods=['POST'])
 @jwt_required()
 def place_bid():
+    """
+    @brief Places a bid on an active auction with validation and overtime extension.
+
+    Validates bid > current + 1.0, not after end, not duplicate timestamp. Uses lock for concurrency.
+    Adds to AuctionPriceHistory, extends overtime by 60s if <60s remain. Emits SocketIO update.
+    
+    @param id_auction JSON body: Integer auction ID (required).
+    @param new_price JSON body: Float bid amount > current + 1.0 (required).
+    
+    @return JSON success or error message.
+    
+    @retval 200 Success: {"message": "Bid placed successfully"}
+    @retval 400 Missing params, inactive auction, too low bid, ended, or duplicate timestamp
+    @retval 404 User or auction not found
+    """
     timestamp = datetime.now()
 
     user = Users.query.get( get_jwt_identity())
@@ -246,6 +307,19 @@ def place_bid():
 @bp.route('/get_user_own_auctions', methods=['GET'])
 @jwt_required()
 def get_user_own_auctions():
+    """
+    @brief Retrieves all auctions owned by the authenticated seller.
+
+    Fetches seller's auctions with main photo, highest bid (or start_price), 
+    categories, dates, status, and winner ID. No end-date filtering applied.
+    
+    @return JSON array of seller auctions with: id_auction, title, description, 
+    start_price, current_price, start_date, end_date, overtime, status, id_winner, 
+    main_photo, categories.
+    
+    @retval 200 Success: Complete list (may be empty).
+    @retval 404 User not found.
+    """
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -285,6 +359,19 @@ def get_user_own_auctions():
 @bp.route('/get_user_auctions', methods=['GET'])
 @jwt_required()
 def get_user_auctions():
+    """
+    @brief Retrieves active auctions for the authenticated user.
+
+    Fetches user's bids from AuctionPriceHistory, gets distinct auctions not yet ended
+    (considering end_date + overtime). Enriches with main photo, highest bid (or start_price),
+    and joined categories for each.
+    
+    @return JSON array of user auctions with fields: id_auction, description, starting_price,
+    current_price, end_date, overtime, title, main_photo, status, categories.
+    
+    @retval 200 Success: List of active auctions (may be empty).
+    @retval 404 User not found.
+    """
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -325,6 +412,18 @@ def get_user_auctions():
 @bp.route('/archived_auctions', methods=['GET'])
 @jwt_required()
 def archived_auctions():
+    """
+    @brief Retrieves archived (ended) auctions owned by the authenticated seller.
+
+    Filters seller's auctions where end_date + overtime < now(). Includes main photo,
+    highest bid (or start_price as final_price), winner details, and categories.
+    
+    @return JSON array of archived auctions with: id_auction, description, starting_price,
+    final_price, winner_id, winner_name, end_date, title, main_photo, categories.
+    
+    @retval 200 Success: List of ended auctions (may be empty).
+    @retval 404 User not found.
+    """
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -368,6 +467,20 @@ def archived_auctions():
 @bp.route('/delete_auction', methods=['POST'])
 @jwt_required()
 def delete_auction():
+    """
+    @brief Deletes an auction. Only the seller can delete an auction.
+
+    @detail Requires JWT authentication. Parses id_auction from JSON body, verifies user ownership, deletes associated photos and bids first, then the auction. Calls on_auction_update() post-deletion.
+
+    @param id_auction: The id of the auction to be deleted.
+    
+    @return A JSON object with a message indicating whether the auction was deleted successfully.
+    
+    @retval 200: If the auction was deleted successfully.
+    @retval 400: If the id_auction parameter is missing.
+    @retval 404: If the user or the auction is not found.
+    @retval 403: If the user is not authorized to delete the auction.    
+    """
     user = Users.query.get( get_jwt_identity())
     if not user:
         return jsonify({"error": "User not found"}), 404

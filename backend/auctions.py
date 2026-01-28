@@ -21,6 +21,17 @@ APP = None
 
 @socketio.on('join')
 def handle_join(data):
+    """
+    @brief Handles client joining auction SocketIO room.
+
+    Validates 'auction' field, calls join_room(). Broadcasts user_joined confirmation.
+    
+    @param data Dict: {'auction': room_id str/int}
+    
+    @note Emits 'error' code 0/1 on fail; 'user_joined' success to room.
+    
+    @return None (room ops + emit).
+    """
     print("join event received:", data)
     if not 'auction' in data.keys():
         emit('error', {'message': 'Invalid data format', 'code': 0})
@@ -36,6 +47,17 @@ def handle_join(data):
 
 @socketio.on('leave')
 def handle_leave(data):
+    """
+    @brief Handles client leaving auction SocketIO room.
+
+    Validates 'auction' in data, calls leave_room(). Broadcasts user_left to room.
+    
+    @param data Dict: {'auction': room_id str/int}
+    
+    @note Emits 'error' on validation fail; 'user_left' success to room.
+    
+    @return None (room ops + emit).
+    """
     print("leave event received:", data)
     if not 'auction' in data.keys():
         emit('error', {'message': 'Invalid data format', 'code': 0})
@@ -50,9 +72,27 @@ def handle_leave(data):
     emit('user_left', {'auction': auction})
 
 def get_auction_lock(auction_id):
+    """
+    @brief Returns the lock object for auction-specific synchronization.
+
+    Assumes _auction_locks dict populated elsewhere (e.g., on-demand RLock).
+    
+    @param auction_id Integer/String: Auction identifier.
+    
+    @note Global/shared _auction_locks; ensure initialized before use.
+    
+    @return Lock instance for auction_id (e.g., threading.RLock).
+    """
     return _auction_locks[auction_id]
 
 def get_next_auction_to_close():
+    """
+    @brief Finds the active auction ending soonest (end_date + overtime).
+
+    Queries 'at_auction' status auctions, returns min by computed end time.
+    
+    @return Auction instance closest to ending, or None if none active.
+    """
     active_auctions = Auctions.query.filter(Auctions.status == 'at_auction').all()
 
     if not active_auctions:
@@ -63,6 +103,17 @@ def get_next_auction_to_close():
     return next_auction
 
 def get_next_auction_to_open():
+    """
+    @brief Opens 'not_issued' auction to 'at_auction' status.
+
+    Updates status, commits, schedules closure. Reschedules next open if invalid.
+    
+    @param auction_id Integer: Auction to open.
+    
+    @note Idempotent: skips if wrong status, chains to closure scheduling.
+    
+    @return None (DB update + scheduling).
+    """
     upcoming_auctions = Auctions.query.filter(Auctions.status == 'not_issued').all()
 
     if not upcoming_auctions:
@@ -73,6 +124,19 @@ def get_next_auction_to_open():
     return next_auction
 
 def close_auction_if_ended(auction_id, expected_overtime=0):
+    """
+    @brief Closes auction if ended, handling concurrent overtime changes.
+
+    App context check: refreshes auction under lock, verifies end time vs expected_overtime.
+    Sets status='sold', highest bidder as winner. Emits SocketIO, reschedules next.
+    
+    @param auction_id Integer: Auction to potentially close.
+    @param expected_overtime Integer: Expected overtime at scheduling (default 0).
+    
+    @note Idempotent: reschedules if not ended or overtime changed.
+    
+    @return None (DB update + emit side-effects).
+    """
     with APP.app_context():
         auction = Auctions.query.get(auction_id)
 
@@ -122,6 +186,17 @@ def close_auction_if_ended(auction_id, expected_overtime=0):
         schedule_next_auction()
 
 def open_auction(auction_id):
+    """
+    @brief Opens 'not_issued' auction to 'at_auction' status.
+
+    Updates status, commits, schedules closure. Reschedules next open if invalid.
+    
+    @param auction_id Integer: Auction to open.
+    
+    @note Idempotent: skips wrong status, chains to closure scheduling.
+    
+    @return None (DB update + scheduling).
+    """
     with APP.app_context():
         auction = Auctions.query.get(auction_id)
 
@@ -138,6 +213,18 @@ def open_auction(auction_id):
         schedule_auction_closure(auction)
 
 def schedule_auction_closure(auction):
+    """
+    @brief Schedules auction closure job at end_date + overtime.
+
+    Removes existing job if present, adds new date-trigger job for close_auction_if_ended.
+    Passes id_auction as arg, overtime as kwarg.
+    
+    @param auction Auction instance with end_date, overtime, id_auction.
+    
+    @note Job ID: 'close_auction_{id_auction}' for uniqueness.
+    
+    @return None (scheduling side-effect).
+    """
     auction_end_time = auction.end_date + timedelta(seconds=auction.overtime or 0)
     job_id = f'close_auction_{auction.id_auction}'
 
@@ -159,6 +246,17 @@ def schedule_auction_closure(auction):
     logger.debug(f"Scheduled closure for Auction {auction.id_auction} at {auction_end_time} with overtime {auction.overtime} seconds.")
 
 def schedule_auction_opening(auction):
+    """
+    @brief Schedules auction opening job at start_date (or immediate if past).
+
+    Removes existing job, adds date-trigger for open_auction(id_auction).
+    
+    @param auction Auction instance with start_date, id_auction.
+    
+    @note Job ID: 'open_auction_{id_auction}'. Runs now+1s if start_date past.
+    
+    @return None (scheduling side-effect).
+    """
     auction_start_time = auction.start_date
     job_id = f'open_auction_{auction.id_auction}'
 
@@ -178,6 +276,16 @@ def schedule_auction_opening(auction):
     logger.debug(f"Scheduled opening for Auction {auction.id_auction} at {auction_start_time}.")
 
 def schedule_next_auction():
+    """
+    @brief Schedules the next auction closure or reschedules self in 1 minute.
+
+    Creates app context, finds next auction via get_next_auction_to_close().
+    Calls schedule_auction_closure() if found, else recurses via scheduler.
+    
+    @note Uses app factory and scheduler; logs when no auctions.
+    
+    @return None (scheduling side-effect).
+    """
     with APP.app_context():
         next_auction = get_next_auction_to_close()
         if next_auction:
@@ -193,6 +301,16 @@ def schedule_next_auction():
             logger.debug("No active auctions to schedule.")
 
 def schedule_open_next_auction():
+    """
+    @brief Schedules next 'not_issued' auction opening or reschedules self.
+
+    App context finds get_next_auction_to_open(), calls schedule_auction_opening().
+    Recurses every 1min if none pending via SCHEDULER job.
+    
+    @note Uses global APP/SCHEDULER; fixed job ID 'schedule_open_next_auction'.
+    
+    @return None (scheduling side-effect).
+    """
     with APP.app_context():
         next_auction = get_next_auction_to_open()
         if next_auction:
@@ -208,10 +326,35 @@ def schedule_open_next_auction():
             logger.debug("No upcoming auctions to schedule.")
 
 def start_scheduler(app):
+    """
+    @brief Initializes scheduler with app context binding.
+
+    Sets global APP for context usage, creates/starts BackgroundScheduler.
+    
+    @param app Flask app instance.
+    
+    @note Call before scheduling jobs; globals used in scheduled funcs.
+    
+    @return None (modifies globals SCHEDULER, APP).
+    """
     global SCHEDULER, APP
     APP = app
     SCHEDULER = BackgroundScheduler()
     SCHEDULER.start()
+    
+def start_scheduler():
+    """
+    @brief Initializes and starts BackgroundScheduler with initial auction scheduling.
+
+    Sets global scheduler, starts it, creates app context for schedule_next_auction().
+    
+    @note Modifies global 'scheduler' variable.
+    
+    @return Active scheduler instance.
+    """
+    global scheduler
+    scheduler = BackgroundScheduler()
+    scheduler.start()
 
     logger.debug("Scheduler started.")
 
@@ -222,6 +365,21 @@ def start_scheduler(app):
     return SCHEDULER
 
 def on_auction_update():
+    """
+    @brief Triggers auction scheduling refresh after auction changes.
+
+    Recreates app context and calls schedule_next_auction() to handle updates
+    like new bids extending overtime.
+    
+    @note Call after auction modifications (bids, status changes).
+    
+    @return None (scheduling side-effect).
+    """
     with APP.app_context():
         schedule_next_auction()
         schedule_open_next_auction()
+   
+    from main import create_app
+    app = create_app()  
+    with app.app_context():
+        schedule_next_auction()
