@@ -11,7 +11,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<div className="flex-col">
+		<div className="flex-col min-h-screen">
 			<Provider store={store}>
 				<Header />
 				<div className="pt-24 flex-1 flex-col">

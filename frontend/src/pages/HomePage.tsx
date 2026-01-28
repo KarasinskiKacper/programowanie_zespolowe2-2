@@ -61,7 +61,7 @@ export default function HomePage() {
         ))}
       </div>
       <div className="w-full max-w-[1400px] bg-zinc-100 flex flex-col justify-start items-start overflow-hidden p-2">
-        {productCards}
+        {products.length ? productCards : <div className="px-8 py-16 text-2xl">Brak aukcji</div>}
       </div>
     </div>
   );
