@@ -11,6 +11,8 @@ import {
   getAllAuctionsThunk,
   getArchiveAuctionsThunk,
   getAuctionCategoriesThunk,
+  getAuctionDetailsThunk,
+  getAuctionPhotoThunk,
   getUserAuctionsThunk,
   getUserOwnAuctionsThunk,
 } from "@/store/thunks/AuctionsThunk";
@@ -33,6 +35,7 @@ import {
   setOwnAuctions,
   setParticipatingAuctions,
 } from "@/store/slices/userAuctionSlice";
+import { set } from "date-fns";
 
 export default function Header() {
   const dispatch = useAppDispatch();
@@ -56,11 +59,38 @@ export default function Header() {
 
   handleAutoLogin();
 
+  const loadAuctionData = async () => {
+    const data = await dispatch<any>(getAllAuctionsThunk());
+    dispatch(setAuctions(data));
+
+    if (accessToken == null) return;
+
+    const own = await dispatch<any>(getUserOwnAuctionsThunk());
+    dispatch(setOwnAuctions(own));
+
+    const participating = await dispatch<any>(getUserAuctionsThunk());
+    dispatch(setParticipatingAuctions(participating));
+
+    const archived = await dispatch<any>(getArchiveAuctionsThunk());
+    dispatch(setArchivedAuctions(archived));
+    console.log("socket.connected", socket.connected);
+
+    for (const ownAction of own) {
+      socket.emit("join", { auction: ownAction.id_auction });
+    }
+
+    for (const participatingAction of participating) {
+      socket.emit("join", { auction: participatingAction.id_auction });
+    }
+  };
+
   const onAuctionUpdated = () => {
     console.log("onAuctionUpdated");
+    loadAuctionData();
   };
   const onAuctionClosed = () => {
     console.log("onAuctionUpdated");
+    loadAuctionData();
   };
 
   const scheduler_check = () => {
@@ -96,37 +126,7 @@ export default function Header() {
   const accessToken = useAppSelector((state) => state.auth.access_token);
 
   useEffect(() => {
-    if (!accessToken) return;
-
-    const load = async () => {
-      const own = await dispatch<any>(getUserOwnAuctionsThunk());
-      dispatch(setOwnAuctions(own));
-
-      const participating = await dispatch<any>(getUserAuctionsThunk());
-      dispatch(setParticipatingAuctions(participating));
-
-      const archived = await dispatch<any>(getArchiveAuctionsThunk());
-      dispatch(setArchivedAuctions(archived));
-      console.log("socket.connected", socket.connected);
-
-      for (const ownAction of own) {
-        socket.emit("join", { auction: ownAction.id_auction });
-      }
-
-      for (const participatingAction of participating) {
-        socket.emit("join", { auction: participatingAction.id_auction });
-      }
-    };
-
-    load();
-  }, [accessToken, dispatch]);
-  useEffect(() => {
-    const load = async () => {
-      const data = await dispatch<any>(getAllAuctionsThunk());
-      dispatch(setAuctions(data));
-    };
-
-    load();
+    loadAuctionData();
   }, [accessToken, dispatch]);
 
   return (
@@ -189,63 +189,144 @@ export default function Header() {
     </div>
   );
 }
-const HeaderIcon = ({ name, size, onClick = () => {} }: { name: keyof typeof icons; size: number; onClick?: () => void }) => {
-	return (
-		<div className="self-stretch px-4 flex justify-start items-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)]" onClick={onClick}>
-			<Icon name={name} size={size} color="#fff" />
-		</div>
-	);
+const HeaderIcon = ({
+  name,
+  size,
+  onClick = () => {},
+}: {
+  name: keyof typeof icons;
+  size: number;
+  onClick?: () => void;
+}) => {
+  return (
+    <div
+      className="self-stretch px-4 flex justify-start items-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)]"
+      onClick={onClick}
+    >
+      <Icon name={name} size={size} color="#fff" />
+    </div>
+  );
 };
 
 const HeaderNotifications = ({}) => {
-  const notifications = [ // TODO przekazać notyfikacje
-    {
-      name: "Piekarnik ZW 1353",
-      href: "/",
-      img_src: "/no-image.png",
-      userName: "Tom",
-      userSurname: "Karacov",
-      price: 200,
-      buttonMsg: "Przebij",
-    }
-  ]
+  const dispatch = useAppDispatch();
+  // const pathname = usePathname();
 
-  const [isOpen, setIsOpen] = useState(false)
+  // const myAuctions = useAppSelector(selectOwnAuctions);
+  // const participantAuctions = useAppSelector(selectParticipatingAuctions);
+  // const archiveAuctions = useAppSelector(selectArchivedAuctions);
+
+  const router = useRouter();
+  const {
+    isAuthenticated,
+    access_token,
+    create_account_date,
+    email,
+    first_name,
+    last_name,
+    phone_number,
+  } = useAppSelector(selectAuth);
+
+  const [notifications, setNotifications] = useState([]);
+  console.log("notifications", notifications);
+
+  // const notifications = [
+  //   {
+  //     name: "Piekarnik ZW 1353",
+  //     href: "/",
+  //     img_src: "/no-image.png",
+  //     userName: "Tom",
+  //     userSurname: "Karacov",
+  //     price: 200,
+  //     buttonMsg: "Przebij",
+  //   },
+  // ];
+
+  const onAuctionUpdated = async (data) => {
+    const notifData = await dispatch(getAuctionDetailsThunk(data.id_auction));
+    const photoData = await dispatch(getAuctionPhotoThunk(notifData.main_photo));
+    console.log(notifData);
+
+    // notifications.push({
+    //   name: notifData.title,
+    //   href: `/aukcja/${data.id_auction}`,
+    //   img_src: "/no-image.png",
+    //   price: 300,
+    //   buttonMsg: "Zobacz",
+    // });
+
+    const tmp = [...notifications];
+    tmp.push({
+      name: notifData.title,
+      href: "/aukcja/" + data.id_auction,
+      img_src: photoData,
+      price: Math.round(notifData.current_price),
+      buttonMsg: "Zobacz",
+    });
+    setNotifications(tmp);
+
+    console.log(data.id_auction);
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+    socket.on("auction_updated", onAuctionUpdated);
+    // socket.on("auction_closed", onAuctionClosed);
+
+    return () => {
+      socket.off("auction_updated");
+      // socket.off("auction_closed");
+    };
+  }, [isAuthenticated, notifications]);
+
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="h-full" onClick={()=>setIsOpen(!isOpen)}>
-      <HeaderIcon name={notifications.length ? "ringinfo" : "ring"} size={32}/>
-      {isOpen && <div className="w-[512px] p-4 right-0 top-24 absolute bg-white border-l-4 border-r-4 border-b-4 border-brand-primary inline-flex flex-col justify-center items-start gap-8">
-        {notifications.length 
-          ? notifications.map(n => <NotificationItem notification={n}/>)
-          : <div className="py-4 px-4 text-lg select-none">Nie masz żadnych powiadomień</div>
-        }
-      </div>}
+    <div className="h-full" onClick={() => setIsOpen(!isOpen)}>
+      <HeaderIcon name={notifications.length ? "ringinfo" : "ring"} size={32} />
+      {isOpen && (
+        <div className="w-[512px] p-4 right-0 top-24 absolute bg-white border-l-4 border-r-4 border-b-4 border-brand-primary inline-flex flex-col justify-center items-start gap-8">
+          {notifications.length ? (
+            notifications.map((n, index) => <NotificationItem key={index} notification={n} />)
+          ) : (
+            <div className="py-4 px-4 text-lg select-none">Nie masz żadnych powiadomień</div>
+          )}
+        </div>
+      )}
     </div>
   );
-}
+};
 
-const NotificationItem = ({notification}) => {
-  const router = useRouter()
+const NotificationItem = ({ notification }) => {
+  const router = useRouter();
   return (
-    <div 
-      data-property-1="Default" className="w-[480px] inline-flex justify-center items-start gap-4 cursor-pointer" 
-      onClick={()=> router.push(notification.href)}
+    <div
+      data-property-1="Default"
+      className="w-[480px] inline-flex justify-center items-start gap-4 cursor-pointer"
+      onClick={() => router.push(notification.href)}
     >
-      <img src={notification.img_src} className="w-32 h-32 object-contain"/>
+      <img src={notification.img_src} className="w-32 h-32 object-contain" />
       <div className="flex-1 inline-flex flex-col justify-center items-start gap-4">
-        <div className="justify-start text-black text-2xl font-bold font-['Inter']">{notification.name}</div>
+        <div className="justify-start text-black text-2xl font-bold font-['Inter']">
+          {notification.name}
+        </div>
         <div className="self-stretch inline-flex justify-between items-end">
           <div className="inline-flex flex-col justify-center items-start">
-            <div className="justify-start text-black text-2xl font-normal font-['Inter']">{notification.userName} {notification.userSurname[0]}.</div>
-            <div className="justify-start text-brand-primary text-4xl font-bold font-['Inter']">{notification.price}zł</div>
+            {/* <div className="justify-start text-black text-2xl font-normal font-['Inter']">{notification.userName} {notification.userSurname[0]}.</div> */}
+            <div className="justify-start text-brand-primary text-4xl font-bold font-['Inter']">
+              {notification.price}zł
+            </div>
           </div>
-          {notification.buttonMsg &&
+          {notification.buttonMsg && (
             <div className="px-8 py-2 bg-brand-primary flex justify-center items-center gap-2.5 cursor-pointer hover:bg-brand-primary/80">
-            <div className="justify-start text-white text-xl font-bold font-['Inter']">{notification.buttonMsg}</div>
-          </div>
-          }
+              <div className="justify-start text-white text-xl font-bold font-['Inter']">
+                {notification.buttonMsg}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
+};

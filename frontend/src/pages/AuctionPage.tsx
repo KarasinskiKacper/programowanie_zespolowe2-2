@@ -36,49 +36,57 @@ export default function AuctionPage() {
   const [bidError, setBidError] = useState<string | null>(null);
   const [bidSuccess, setBidSuccess] = useState<string | null>(null);
 
-  const categoryItems = ["RTV/AGD", "Elektronika", "Dom", "Auto", "Dzieci"]; // TODO dostarczyć listę kategiorii
+  const loadAuctionData = async () => {
+    const auctionDetails = await dispatch(getAuctionDetailsThunk(auctionId));
+
+    const imagesUrl = [auctionDetails.main_photo, ...auctionDetails.photos];
+    const images = [];
+    await imagesUrl.forEach(async (imageUrl) => {
+      const photoData = await dispatch(getAuctionPhotoThunk(imageUrl));
+      images.push(photoData);
+    });
+
+    const data = {
+      title: auctionDetails.title,
+      startPrice: Math.round(auctionDetails.start_price),
+      price: Math.round(auctionDetails.current_price),
+      time: auctionDetails.end_date,
+      owner: {
+        name: auctionDetails.seller_name,
+        avatarUrl: "", // TODO: add avatar url
+        id: auctionDetails.id_seller,
+      },
+      winner: {
+        name: auctionDetails.winner_name,
+        avatarUrl: "", // TODO: add avatar url
+        id: auctionDetails.id_winner,
+        time: auctionDetails.id_winner ? auctionDetails.end_date : null,
+      },
+      startDate: auctionDetails.start_date,
+      endDate: auctionDetails.end_date,
+      description: auctionDetails.description.trim(),
+      images: images,
+      overtime: auctionDetails.overtime,
+      categories: auctionDetails.categories,
+      status: auctionDetails.status,
+    };
+    setEndDate(data.endDate);
+    setAuctionData(data);
+    console.log(data);
+
+    setBid(Math.round(auctionDetails.current_price) + 1);
+    setMinBid(Math.round(auctionDetails.current_price) + 1);
+  };
+
+  const onAuctionUpdated = (data) => {
+    if (data.id_auction != auctionId) return;
+    loadAuctionData();
+  };
 
   useEffect(() => {
-    (async () => {
-      const auctionDetails = await dispatch(getAuctionDetailsThunk(auctionId));
+    loadAuctionData();
 
-      const imagesUrl = [auctionDetails.main_photo, ...auctionDetails.photos];
-      const images = [];
-      await imagesUrl.forEach(async (imageUrl) => {
-        const photoData = await dispatch(getAuctionPhotoThunk(imageUrl));
-        images.push(photoData);
-      });
-
-      const data = {
-        title: auctionDetails.title,
-        startPrice: Math.round(auctionDetails.start_price),
-        price: Math.round(auctionDetails.current_price),
-        time: auctionDetails.end_date,
-        owner: {
-          name: auctionDetails.seller_name,
-          avatarUrl: "", // TODO: add avatar url
-          id: auctionDetails.id_seller,
-        },
-        winner: {
-          name: auctionDetails.winner_name,
-          avatarUrl: "", // TODO: add avatar url
-          id: auctionDetails.id_winner,
-          time: auctionDetails.id_winner ? auctionDetails.end_date : null,
-        },
-        startDate: auctionDetails.start_date,
-        endDate: auctionDetails.end_date,
-        description: auctionDetails.description.trim(),
-        images: images,
-        overtime: auctionDetails.overtime,
-        categories: auctionDetails.categories,
-      };
-      setEndDate(data.endDate);
-      setAuctionData(data);
-      console.log(auctionDetails);
-
-      setBid(Math.round(auctionDetails.current_price + 1));
-      setMinBid(Math.round(auctionDetails.current_price + 1));
-    })();
+    socket.on("auction_updated", onAuctionUpdated);
   }, []);
 
   const end = new Date(endDate);
@@ -138,54 +146,60 @@ export default function AuctionPage() {
                 </div>
 
                 {auctionData?.winner?.name ? (
-                  <div className="inline-flex justify-start items-center gap-2">
-                    <Avatar
-                      size={16 * 4}
-                      name={auctionData?.winner?.name?.split(" ")[0]}
-                      surname={auctionData?.winner?.name?.split(" ")[1]}
-                    />
-                    <div className="inline-flex flex-col justify-center items-start gap-1">
-                      <div className="justify-start text-black text-xl font-bold font-['Inter']">
-                        {auctionData?.winner?.name}
-                      </div>
-                      <div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">
-                        {auctionData?.winner?.time &&
-                          format(parseISO(auctionData?.winner?.time), "dd.MM.yyyy HH:mm")}
+                  <>
+                    <div className="flex-col self-stretch text-2xl font-semibold text-orange-600 gap-2">
+                      Wygrał:
+                    </div>
+                    <div className="inline-flex justify-start items-center gap-2">
+                      <Avatar
+                        size={16 * 4}
+                        name={auctionData?.winner?.name?.split(" ")[0]}
+                        surname={auctionData?.winner?.name?.split(" ")[1]}
+                      />
+                      <div className="inline-flex flex-col justify-center items-start gap-1">
+                        <div className="justify-start text-black text-xl font-bold font-['Inter']">
+                          {auctionData?.winner?.name}
+                        </div>
+                        <div className="justify-start text-neutral-500 text-xl font-normal font-['Inter']">
+                          {auctionData?.winner?.time &&
+                            format(parseISO(auctionData?.winner?.time), "dd.MM.yyyy HH:mm")}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <div className="text-2xl text-brand-primary font-bold">Cena startowa</div>
                 )}
               </div>
               <div className="self-stretch inline-flex justify-start items-start gap-4">
-                {auctionData?.owner.id != jwt.decode(userData?.access_token)?.sub && (
-                  <>
-                    <input
-                      type="number"
-                      className="flex-2 h-12 border-2 border-orange-600 px-4 text-2xl w-1"
-                      min={minBid}
-                      value={bid}
-                      onChange={(e) => {
-                        setBid(Math.round(Number(e.target.value)));
-                      }}
-                    />
-                    <Button
-                      label="Przebij"
-                      onClick={async () => {
-                        if (await dispatch(placeBidThunk(auctionId, bid))) {
-                          setBidError("");
-                          setBidSuccess("Przebiłeś ofertę.");
-                          socket.emit("join", { auction: auctionId });
-                        } else {
-                          setBidSuccess("");
-                          setBidError("Coś poszło nie tak.");
-                        }
-                      }}
-                      size="small"
-                    />
-                  </>
-                )}
+                {auctionData?.owner.id != jwt.decode(userData?.access_token)?.sub &&
+                  auctionData?.status !== "sold" && (
+                    <>
+                      <input
+                        type="number"
+                        className="flex-2 h-12 border-2 border-orange-600 px-4 text-2xl w-1"
+                        min={minBid}
+                        value={bid}
+                        onChange={(e) => {
+                          setBid(Math.round(Number(e.target.value)));
+                        }}
+                      />
+                      <Button
+                        label="Przebij"
+                        onClick={async () => {
+                          if (await dispatch(placeBidThunk(auctionId, bid))) {
+                            setBidError("");
+                            setBidSuccess("Przebiłeś ofertę.");
+                            socket.emit("join", { auction: auctionId });
+                          } else {
+                            setBidSuccess("");
+                            setBidError("Coś poszło nie tak.");
+                          }
+                        }}
+                        size="small"
+                      />
+                    </>
+                  )}
               </div>
               {bidError && (
                 <div className="justify-start text-red-600 text-base font-bold font-['Inter']">

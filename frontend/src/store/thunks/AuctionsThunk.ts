@@ -22,6 +22,8 @@ export const getUserOwnAuctionsThunk = () => async (dispatch, getState) => {
   });
 
   const data = await response.json();
+  console.log("own", data);
+
   return data;
 };
 
@@ -48,6 +50,8 @@ export const getArchiveAuctionsThunk = () => async (dispatch, getState) => {
   });
 
   const data = await response.json();
+  console.log("ar", data);
+
   return data;
 };
 
