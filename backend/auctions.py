@@ -8,10 +8,7 @@ from datetime import datetime, timedelta
 import logging
 from app_state import socketio
 
-# TODO add scheduled auction opening
-
-# TODO remove debug logging
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger("auctions_scheduler_test")
 
 _auction_locks = defaultdict(Lock)

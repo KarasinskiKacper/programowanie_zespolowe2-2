@@ -1,0 +1,98 @@
+/** @mainpage Documentation for "Largo" Auction Backend
+
+## Overview
+
+Auction platform backend built with Flask, Flask-SocketIO, SQLAlchemy, and MySQL. Provides 
+REST API for auction management and real-time WebSocket updates for live bidding.
+
+## Features
+
+### Auction Management
+- **Full Auction Lifecycle**: Create, list, bid, close auctions automatically
+- **Bidding System**: Real-time bids with 1.0 minimum increment and overtime extension
+- **Multi-Photo Support**: Main photo + gallery per auction with upload API
+- **Categories**: Multiple categories per auction via junction table
+
+### User Management
+- **Authentication**: JWT-based registration, login, password management
+- **Seller Dashboard**: View own auctions (active/archived), user bids
+- **Profile**: User info retrieval with account creation timestamps
+
+### Real-Time Features
+- **Live Bidding**: SocketIO room per auction with bid updates
+- **Auction Status**: Automatic opening/closing via scheduler
+- **Presence**: Join/leave auction rooms with user notifications
+
+### Scheduling System
+- **Smart Scheduler**: Background jobs for auction open/close timing
+- **Overtime Handling**: Dynamic extension (60s added if bid within last minute)
+- **Concurrency**: Per-auction locks prevent race conditions
+
+## Architecture
+
+### Database Models (`db_objects.py`)
+Seven core models:
+- **Users**: Authentication + profiles
+- **Auctions**: Core auction data with status enum (at_auction/sold/not_issued)
+- **AuctionPriceHistory**: Bid history with timestamps for conflict resolution
+- **Categories**: Auction categories lookup
+- **CategoriesAuction**: Many-to-many auction-category junction
+- **PhotosItem**: Auction images with main photo flag
+
+### REST API Routes
+**Authentication**:
+- `/register` - Create account + JWT
+- `/login` - Authenticate + JWT  
+- `/change_password` - Update password
+- `/get_user_info` - Profile data
+
+**Auctions**:
+- `/create_auction` - New auction with photos/categories
+- `/get_all_auctions` - List all (optimized subqueries)
+- `/get_auction_details` - Single auction full data
+- `/get_user_own_auctions` - Seller's auctions
+- `/get_user_auctions` - User's active bids
+- `/archived_auctions` - Seller's ended auctions
+- `/place_bid` - Submit bid (locked, validated)
+- `/delete_auction` - Seller deletes own auction
+
+**Categories**:
+- `/get_all_categories` - Category listing
+
+**File Upload**:
+- `/api/upload_image` - Secure image upload (10MB, png/jpg/webp)
+- `/uploads/<filename>` - Serve uploaded images
+
+### WebSocket Events
+- `join` - Enter auction room
+- `leave` - Exit auction room  
+- `auction_updated` - New bid broadcast (price, bidder, overtime)
+- `auction_closed` - Auction ended notification (winner)
+
+### Application Factory (`create_app()`)
+- **Config**: JWT, MySQLAlchemy, upload limits from .env
+- **Extensions**: SocketIO, JWTManager, CORS, blueprints
+- **Blueprints**: Auctions/Users/Uploads/Categories modular routing
+
+## Technology Stack
+- **Flask 2.x**: Core framework
+- **Flask-SocketIO**: Real-time bidding
+- **SQLAlchemy + MySQL**: ORM/database
+- **Flask-JWT-Extended**: Token authentication
+- **APScheduler**: Auction lifecycle automation
+- **Flask-CORS**: Frontend compatibility
+- **Werkzeug**: File security utilities
+
+## Environment Variables
+- **DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME
+- **JWT_SECRET_KEY
+- **UPLOAD_DIRECTORY (default: 'uploads')
+
+## Getting Started
+1. Configure `.env` with database/JWT settings
+2. `pip install -r requirements.txt`
+3. `flask run` or production WSGI server
+4. Auctions auto-schedule via BackgroundScheduler
+
+@authors Paweł Dyczek, Paweł Herzyk, Mikołaj Całus
+*/
