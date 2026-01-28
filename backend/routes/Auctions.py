@@ -1,25 +1,49 @@
 from flask import Blueprint, request, jsonify
 from sqlalchemy import asc, desc, func
 from datetime import datetime, timedelta
-from db_objects import Users, db, Auctions, PhotosItem, AuctionPriceHistory
+from db_objects import CategoriesAuction, Users, db, Auctions, PhotosItem, AuctionPriceHistory, Categories
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from auctions import get_auction_lock, on_auction_update
+from app_state import socketio
 
 bp = Blueprint('auctions', __name__, url_prefix='/api')
 
 @bp.route('/get_all_auctions', methods=['GET'])
 def get_all_auctions():
+    """!
+    @brief Retrieves all auctions with aggregated max prices and categories.
+
+    Complex query uses subqueries for max bid per auction (or start_price),
+    GROUP_CONCAT categories, LEFT JOIN main photo. Public endpoint for auction list.
+    
+    @return JSON array of auctions: id_auction, title, description, id_seller, 
+    start_price, current_price, dates, overtime, status, id_winner, main_photo, categories array.
+    
+    @retval 200 Success: Complete auctions list
+    """
     max_price_subquery = db.session.query(
         AuctionPriceHistory.id_auction,
         func.max(AuctionPriceHistory.new_price).label('max_price')
     ).group_by(AuctionPriceHistory.id_auction).subquery()
+    
+    categories_subquery = (
+        db.session.query(
+            CategoriesAuction.id_auction,
+            func.group_concat(Categories.category_name).label('categories')
+        )
+        .join(Categories, Categories.id_category == CategoriesAuction.id_category)
+        .group_by(CategoriesAuction.id_auction)
+        .subquery()
+    )
         
-    query = db.session.query(Auctions, PhotosItem, max_price_subquery.c.max_price
+    query = db.session.query(Auctions, PhotosItem, max_price_subquery.c.max_price, categories_subquery.c.categories
         ).outerjoin(max_price_subquery, Auctions.id_auction == max_price_subquery.c.id_auction
         ).outerjoin(PhotosItem,(PhotosItem.id_auction == Auctions.id_auction) & (PhotosItem.is_main_photo == True)
+        ).outerjoin(categories_subquery, Auctions.id_auction == categories_subquery.c.id_auction
         ).all()
 
     results = []
-    for auction, photo, max_price in query:
+    for auction, photo, max_price, categories in query:
         current_price = max_price if max_price is not None else auction.start_price
         results.append({
             "id_auction": auction.id_auction,
@@ -33,12 +57,28 @@ def get_all_auctions():
             "overtime": auction.overtime,
             "status": auction.status,
             "id_winner": auction.id_winner,
-            "main_photo": photo.photo if photo else None
+            "main_photo": photo.photo if photo else None,
+            "categories": categories.split(",") if categories else []
         })
     return jsonify(results), 200
 
 @bp.route('/get_auction_details', methods=['GET'])
 def get_auction_details():
+    """!
+    @brief Retrieves complete details for a specific auction by ID.
+
+    Fetches auction, seller/winner info, all photos (main separate, others in array),
+    highest bid/current price, categories. Public endpoint (no JWT required).
+    
+    @param id_auction Query param: Integer auction ID (required).
+    
+    @return Full auction JSON with seller/winner names, main_photo, photos array 
+    (non-main), current_price, highest_bidder ID, categories.
+    
+    @retval 200 Success: Detailed auction object
+    @retval 400 Missing id_auction
+    @retval 404 Auction not found
+    """
     auction_id = request.args.get('id_auction')
     if not auction_id:
         return jsonify({"error": "id_auction parameter is required"}), 400
@@ -54,6 +94,12 @@ def get_auction_details():
     main_photo = PhotosItem.query.filter(PhotosItem.id_auction==auction.id_auction, PhotosItem.is_main_photo==True).first()
 
     highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
+
+    cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+
+    categories = []
+    for category in cats:
+        categories.append(category.category_name)
 
     current_price = highest_bid.new_price if highest_bid else auction.start_price
     
@@ -80,14 +126,42 @@ def get_auction_details():
         "status": auction.status,
         "main_photo": main_photo.photo if main_photo else None,
         "photos": photo_urls,
-        "highest_bidder": highest_bid.id_user if highest_bid else None
+        "highest_bidder": highest_bid.id_user if highest_bid else None,
+        "categories": categories
     }), 200
     
 @bp.route('/create_auction', methods=['POST'])
+@jwt_required()
 def create_auction():
+    """!
+    @brief Creates a new auction for the authenticated seller with photos and categories.
+
+    Validates required fields, sets status based on start_date vs now(). Adds auction,
+    bulk-inserts PhotosItem (with main flag) and CategoriesAuction links post-flush.
+    
+    @param title String: Auction title (required).
+    @param description String: Description (required).
+    @param start_price Float: Starting price (required).
+    @param start_date ISO datetime: Auction start (required).
+    @param end_date ISO datetime: Auction end (required).
+    @param photos Array optional: [{"url": str, "is_main": bool}].
+    @param categories Array optional: [category IDs].
+    
+    @return JSON with new auction ID.
+    
+    @retval 201 Success: {"message": "...", "id_auction": ID}
+    @retval 400 Missing required fields
+    @retval 404 User not found
+    """
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json()
     
-    required = ["title", "description", "id_seller", "start_price", "start_date", "end_date", "status"]
+    required = ["title", "description", "start_price", "start_date", "end_date"]
+    
     missing = [k for k in required if k not in data]
     if missing:
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
@@ -95,19 +169,22 @@ def create_auction():
     new_auction = Auctions(
         description=data.get("description"),
         title=data["title"],
-        id_seller=data["id_seller"],
+        id_seller=user_id,
         start_price=data["start_price"],
         start_date=datetime.fromisoformat(data["start_date"]),
         end_date=datetime.fromisoformat(data["end_date"]),
-        overtime=data.get("overtime", 0),
-        status=data["status"],
-        id_winner=data.get("id_winner")
+        overtime= 0,
+        status= "at_auction" if datetime.fromisoformat(data["start_date"]) <= datetime.now() + timedelta(seconds=10) else "not_issued",
     )
     
-    
+    db.session.add(new_auction)
+    db.session.flush()
+    db.session.refresh(new_auction)
+
     photos = data.get("photos", [])
     new_photos = []
     for p in photos:
+        print(p)
         new_photos.append(
             PhotosItem(
                 id_auction=new_auction.id_auction,
@@ -115,60 +192,138 @@ def create_auction():
                 is_main_photo=bool(p.get("is_main", False))
             )
         )
+        
+    categories = data.get("categories", [])
+    new_categories = []
+    for c in categories:
+        new_categories.append(
+            CategoriesAuction(
+                id_auction=new_auction.id_auction,
+                id_category=c
+            )
+        )
 
-    db.session.add(new_auction)
+    db.session.add_all(new_categories)
+    
     db.session.add_all(new_photos)
     db.session.commit()
+
+    on_auction_update()
+
     return jsonify({"message": "Auction created successfully", "id_auction": new_auction.id_auction}), 201
 
 @bp.route('/place_bid', methods=['POST'])
+@jwt_required()
 def place_bid():
+    """!
+    @brief Places a bid on an active auction with validation and overtime extension.
+
+    Validates bid > current + 1.0, not after end, not duplicate timestamp. Uses lock for concurrency.
+    Adds to AuctionPriceHistory, extends overtime by 60s if <60s remain. Emits SocketIO update.
+    
+    @param id_auction JSON body: Integer auction ID (required).
+    @param new_price JSON body: Float bid amount > current + 1.0 (required).
+    
+    @return JSON success or error message.
+    
+    @retval 200 Success: {"message": "Bid placed successfully"}
+    @retval 400 Missing params, inactive auction, too low bid, ended, or duplicate timestamp
+    @retval 404 User or auction not found
+    """
+    timestamp = datetime.now()
+
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json() or {}
 
     auction_id = data.get("id_auction")
-    user_id = data.get("id_user")
     new_price = data.get("new_price")
 
-    if not auction_id or not user_id or new_price is None:
-        return jsonify({"error": "id_auction, id_user, new_price are required"}), 400
+    if not auction_id or new_price is None:
+        return jsonify({"error": "id_auction, new_price are required"}), 400
 
     auction = Auctions.query.get(auction_id)
     if not auction:
         return jsonify({"error": "Auction not found"}), 404
 
-    auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
-    if datetime.now() > auction_end:
-        return jsonify({"error": "Auction has already ended"}), 400
+    lock = get_auction_lock(auction_id)
+    with lock:
+        db.session.refresh(auction)
+        if auction.status != "at_auction":
+            return jsonify({"error": "Auction is not active"}), 400
+        
+        auction_end = auction.end_date + timedelta(seconds=auction.overtime or 0)
+        if timestamp > auction_end:
+            return jsonify({"error": "Bid was placed after the auction ended"}), 400
 
-    highest_bid = (
-        AuctionPriceHistory.query
-        .filter_by(id_auction=auction.id_auction)
-        .order_by(desc(AuctionPriceHistory.new_price))
-        .first()
-    )
-    current_price = highest_bid.new_price if highest_bid else auction.start_price
 
-    if float(new_price) <= float(current_price):
-        return jsonify({"error": "Bid must be higher than current price"}), 400
+        highest_bid = (
+            AuctionPriceHistory.query
+            .filter_by(id_auction=auction.id_auction)
+            .order_by(desc(AuctionPriceHistory.new_price))
+            .first()
+        )
+        current_price = highest_bid.new_price if highest_bid else auction.start_price
+        last_bid_timestamp = highest_bid.price_reprint_date if highest_bid else None
 
-    price_history = AuctionPriceHistory(
-        id_auction=auction.id_auction,
-        id_user=user_id,
-        new_price=new_price,
-        price_reprint_date=datetime.now()
-    )
+        if last_bid_timestamp and timestamp < last_bid_timestamp:
+            return jsonify({"error": "A newer bid has already been placed"}), 400
 
-    db.session.add(price_history)
-    db.session.commit()
+        min_increment = 1.0
+
+        if float(new_price) < float(current_price) + min_increment:
+            return jsonify({"error": f"Bid must be at least {min_increment} higher than the current price"}), 400
+
+        price_history = AuctionPriceHistory(
+            id_auction=auction.id_auction,
+            id_user=user_id,
+            new_price=new_price,
+            price_reprint_date=timestamp
+        )
+
+        overtime_changed = False
+        if (auction_end - timestamp).total_seconds() < 60:
+            auction.overtime += 60
+            overtime_changed = True
+
+        db.session.add(price_history)
+        db.session.commit()
+
+    if overtime_changed:
+        on_auction_update()
+
+    socketio.emit('auction_updated', {
+        "id_auction": auction.id_auction,
+        "new_price": str(new_price),
+        "id_user": user_id,
+        "overtime": auction.overtime
+    }, to=f'{auction.id_auction}')
 
     return jsonify({"message": "Bid placed successfully"}), 200
 
 @bp.route('/get_user_own_auctions', methods=['GET'])
+@jwt_required()
 def get_user_own_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
+    """!
+    @brief Retrieves all auctions owned by the authenticated seller.
+
+    Fetches seller's auctions with main photo, highest bid (or start_price), 
+    categories, dates, status, and winner ID. No end-date filtering applied.
     
+    @return JSON array of seller auctions with: id_auction, title, description, 
+    start_price, current_price, start_date, end_date, overtime, status, id_winner, 
+    main_photo, categories.
+    
+    @retval 200 Success: Complete list (may be empty).
+    @retval 404 User not found.
+    """
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
 
     auctions = Auctions.query.filter_by(id_seller=user_id).all()
     results = []
@@ -176,6 +331,12 @@ def get_user_own_auctions():
     for auction in auctions:
         photo = PhotosItem.query.filter(PhotosItem.id_auction==auction.id_auction, PhotosItem.is_main_photo==True).first()
         highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
+        cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+
+        categories = []
+        for category in cats:
+            categories.append(category.category_name)
+        
         
         current_price = highest_bid.new_price if highest_bid else auction.start_price
 
@@ -190,15 +351,31 @@ def get_user_own_auctions():
             "overtime": auction.overtime,
             "status": auction.status,
             "id_winner": auction.id_winner,
-            "main_photo": photo.photo if photo else None
+            "main_photo": photo.photo if photo else None,
+            "categories": categories
         })
     return jsonify(results), 200
 
 @bp.route('/get_user_auctions', methods=['GET'])
+@jwt_required()
 def get_user_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
+    """!
+    @brief Retrieves active auctions for the authenticated user.
+
+    Fetches user's bids from AuctionPriceHistory, gets distinct auctions not yet ended
+    (considering end_date + overtime). Enriches with main photo, highest bid (or start_price),
+    and joined categories for each.
+    
+    @return JSON array of user auctions with fields: id_auction, description, starting_price,
+    current_price, end_date, overtime, title, main_photo, status, categories.
+    
+    @retval 200 Success: List of active auctions (may be empty).
+    @retval 404 User not found.
+    """
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
 
     entries = AuctionPriceHistory.query.filter_by(id_user=user_id).with_entities(AuctionPriceHistory.id_auction).distinct().all()
     
@@ -210,6 +387,11 @@ def get_user_auctions():
             continue
         photo = PhotosItem.query.filter(PhotosItem.id_auction==auction.id_auction, PhotosItem.is_main_photo==True).first()
         highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
+        cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+
+        categories = []
+        for category in cats:
+            categories.append(category.category_name)
         
         current_price = highest_bid.new_price if highest_bid else auction.start_price
         
@@ -222,15 +404,57 @@ def get_user_auctions():
             "overtime": auction.overtime,
             "title": auction.title,
             "main_photo": photo.photo,
-            "status": auction.status
+            "status": auction.status,
+            "categories": categories
         })
+        
+    won_auctions = Auctions.query.filter_by(id_winner=user_id).all()
+    
+    for auction in won_auctions:
+        photo = PhotosItem.query.filter(PhotosItem.id_auction==auction.id_auction, PhotosItem.is_main_photo==True).first()
+        highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
+        cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+        
+        categories = []
+        for category in cats:
+            categories.append(category.category_name)
+        
+        current_price = highest_bid.new_price if highest_bid else auction.start_price
+        
+        results.append({
+            "id_auction": auction.id_auction,
+            "description": auction.description,
+            "starting_price": str(auction.start_price),
+            "current_price": str(current_price),
+            "end_date": auction.end_date.isoformat(),
+            "overtime": auction.overtime,
+            "title": auction.title,
+            "main_photo": photo.photo,
+            "status": auction.status,
+            "categories": categories
+        })
+            
     return jsonify(results), 200
 
 @bp.route('/archived_auctions', methods=['GET'])
+@jwt_required()
 def archived_auctions():
-    user_id = request.args.get('id_user')
-    if not user_id:
-        return jsonify({"error": "id_user parameter is required"}), 400
+    """!
+    @brief Retrieves archived (ended) auctions owned by the authenticated seller.
+
+    Filters seller's auctions where end_date + overtime < now(). Includes main photo,
+    highest bid (or start_price as final_price), winner details, and categories.
+    
+    @return JSON array of archived auctions with: id_auction, description, starting_price,
+    final_price, winner_id, winner_name, end_date, title, main_photo, categories.
+    
+    @retval 200 Success: List of ended auctions (may be empty).
+    @retval 404 User not found.
+    """
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
     
     auctions = Auctions.query.filter(Auctions.id_seller == user_id).all()
     
@@ -245,29 +469,55 @@ def archived_auctions():
         highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
         winner = Users.query.get(auction.id_winner) if auction.id_winner else None
         
+        cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+
+        categories = []
+        for category in cats:
+            categories.append(category.category_name)
+        
         current_price = highest_bid.new_price if highest_bid else auction.start_price
         
         results.append({
             "id_auction": auction.id_auction,
             "description": auction.description,
             "starting_price": str(auction.start_price),
-            "final_price": str(current_price),
+            "current_price": str(current_price),
             "winner_id": auction.id_winner,
             "winner_name": winner.first_name + " " + winner.last_name if winner else None,
             "end_date": auction.end_date.isoformat() if auction.end_date else None,
             "title": auction.title,
-            "main_photo": photo.photo if photo else None
+            "main_photo": photo.photo if photo else None,
+            "categories": categories
         })
     return jsonify(results), 200
 
 @bp.route('/delete_auction', methods=['POST'])
+@jwt_required()
 def delete_auction():
+    """!
+    @brief Deletes an auction. Only the seller can delete an auction.
+
+    @detail Requires JWT authentication. Parses id_auction from JSON body, verifies user ownership, deletes associated photos and bids first, then the auction. Calls on_auction_update() post-deletion.
+
+    @param id_auction: The id of the auction to be deleted.
+    
+    @return A JSON object with a message indicating whether the auction was deleted successfully.
+    
+    @retval 200: If the auction was deleted successfully.
+    @retval 400: If the id_auction parameter is missing.
+    @retval 404: If the user or the auction is not found.
+    @retval 403: If the user is not authorized to delete the auction.    
+    """
+    user = Users.query.get( get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user_id = user.id_user
+
     data = request.get_json()
     auction_id = data.get('id_auction')
-    user_id = data.get('id_user')
     
-    if not auction_id or not user_id:
-        return jsonify({"error": "id_auction and id_user are required"}), 400
+    if not auction_id:
+        return jsonify({"error": "id_auction is required"}), 400
 
     auction = Auctions.query.get(auction_id)
     if not auction:
@@ -287,5 +537,7 @@ def delete_auction():
         
     db.session.delete(auction)
     db.session.commit()
+
+    on_auction_update()
 
     return jsonify({"message": "Auction deleted successfully"}), 200

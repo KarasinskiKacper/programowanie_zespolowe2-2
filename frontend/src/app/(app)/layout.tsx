@@ -1,5 +1,6 @@
 "use client";
 
+import Footer from "@/components/structure/Footer";
 import Header from "@/components/structure/Header";
 import store from "@/store/store";
 import { Provider } from "react-redux";
@@ -10,10 +11,13 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<div className="flex-col">
+		<div className="flex-col min-h-screen">
 			<Provider store={store}>
 				<Header />
-				{children}
+				<div className="pt-24 flex-1 flex-col">
+					{children}
+				</div>
+				<Footer />
 			</Provider>
 		</div>
 	);

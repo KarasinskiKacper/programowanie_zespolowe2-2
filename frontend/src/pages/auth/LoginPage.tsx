@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { loginThunk } from "@/store/thunks/auth/LoginThunk";
-import { autoLogin } from "@/store/thunks/auth/AutoLogin";
+import { autoLoginThunk } from "@/store/thunks/auth/AutoLoginThunk";
 
 import React from "react";
 
@@ -18,12 +18,14 @@ export default function LoginPage() {
 
   const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      dispatch(autoLogin());
-    } catch (e) {
-      router.push("/logowanie");
+  const handleAutoLogin = async () => {
+    if (await dispatch(autoLoginThunk())) {
+      router.push("/");
     }
+  };
+
+  useEffect(() => {
+    handleAutoLogin();
   }, []);
 
   const handleOnLoginClick = async () => {

@@ -5,9 +5,18 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from db_objects import db
 from flask_jwt_extended import JWTManager
-
+from auctions import socketio, start_scheduler
+import atexit
 
 def create_app():
+    """!
+    @brief Creates and configures the Flask application instance.
+
+    Loads .env, sets JWT/SQLAlchemy configs, CORS, SocketIO, blueprints.
+    Creates upload directory.
+    
+    @return Configured Flask app instance.
+    """
     load_dotenv()
     
     app = Flask(__name__)
@@ -26,6 +35,8 @@ def create_app():
 
     jwt = JWTManager(app)
 
+    socketio.init_app(app)  
+
     db.init_app(app)
 
     from routes.Auctions import bp as auctions_bp
@@ -37,10 +48,14 @@ def create_app():
     from routes.Uploads import bp as uploads_bp
     app.register_blueprint(uploads_bp)
     
+    from routes.Categories import bp as categories_bp
+    app.register_blueprint(categories_bp)
+    
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    # with app.app_context():
-    #     db.create_all()
-    app.run(debug=True, host="0.0.0.0")
+
+    scheduler = start_scheduler(app)
+    atexit.register(lambda: scheduler.shutdown())
+    socketio.run(app, debug=True, host=os.getenv("BACKEND_HOST"), port=os.getenv("BACKEND_PORT"))
