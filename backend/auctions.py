@@ -29,8 +29,7 @@ def handle_join(data):
     if not auction:
         emit('error', {'message': 'Missing auction to join', 'code': 1})
         return
-    
-    join_room(auction)
+    join_room(f"{auction}")
 
     emit('user_joined', {'auction': auction})
 

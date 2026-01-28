@@ -320,6 +320,33 @@ def get_user_auctions():
             "status": auction.status,
             "categories": categories
         })
+        
+    won_auctions = Auctions.query.filter_by(id_winner=user_id).all()
+    
+    for auction in won_auctions:
+        photo = PhotosItem.query.filter(PhotosItem.id_auction==auction.id_auction, PhotosItem.is_main_photo==True).first()
+        highest_bid = AuctionPriceHistory.query.filter_by(id_auction=auction.id_auction).order_by(desc(AuctionPriceHistory.new_price)).first()
+        cats = db.session.query(Categories.category_name).join(CategoriesAuction, Categories.id_category == CategoriesAuction.id_category).filter(CategoriesAuction.id_auction == auction.id_auction).all()
+        
+        categories = []
+        for category in cats:
+            categories.append(category.category_name)
+        
+        current_price = highest_bid.new_price if highest_bid else auction.start_price
+        
+        results.append({
+            "id_auction": auction.id_auction,
+            "description": auction.description,
+            "starting_price": str(auction.start_price),
+            "current_price": str(current_price),
+            "end_date": auction.end_date.isoformat(),
+            "overtime": auction.overtime,
+            "title": auction.title,
+            "main_photo": photo.photo,
+            "status": auction.status,
+            "categories": categories
+        })
+            
     return jsonify(results), 200
 
 @bp.route('/archived_auctions', methods=['GET'])
@@ -355,7 +382,7 @@ def archived_auctions():
             "id_auction": auction.id_auction,
             "description": auction.description,
             "starting_price": str(auction.start_price),
-            "final_price": str(current_price),
+            "current_price": str(current_price),
             "winner_id": auction.id_winner,
             "winner_name": winner.first_name + " " + winner.last_name if winner else None,
             "end_date": auction.end_date.isoformat() if auction.end_date else None,
