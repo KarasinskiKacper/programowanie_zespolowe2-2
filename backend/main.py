@@ -9,13 +9,20 @@ from auctions import socketio, start_scheduler
 import atexit
 
 def create_app():
+    """!
+    @brief Creates and configures the Flask application instance.
+
+    Loads .env, sets JWT/SQLAlchemy configs, CORS, SocketIO, blueprints.
+    Creates upload directory.
+    
+    @return Configured Flask app instance.
+    """
     load_dotenv()
     
     app = Flask(__name__)
     CORS(app)
 
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = False # TODO remove
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqldb://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
